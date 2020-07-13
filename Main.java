@@ -72,11 +72,35 @@ public class Main extends Application {
   Alert alert = new Alert(AlertType.NONE);// a general alert for this class
 
   // set title of this project
-  private static final String APP_TITLE = "Social Network 007";
+  private static final String APP_TITLE = "Animal Shelter @ Austin  CS564-Group17";
 
   public static MenuBar menuBar = new MenuBar();// general data manipulation
   public static VBox rightBox = new VBox();// create vBox of right box
   public static VBox leftBox = new VBox();// general data search
+
+
+  Connection conn;
+
+
+
+  // TODO: probably not needed
+  /**
+   * set up user based on their user type
+   * 
+   * @param type
+   * @throws SQLException
+   */
+  private void setUpConnection(String type) throws SQLException {
+    if (type.equals("user")) {
+      conn = DriverManager.getConnection(
+          "jdbc:mysql://127.0.0.1:3306/?user=user&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+          "user", "CS564-G17");
+    } else if (type.equals("admin")) {
+      conn = DriverManager.getConnection(
+          "jdbc:mysql://127.0.0.1:3306/?user=user&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
+          "user", "CS564-G17");
+    }
+  }
 
   /**
    * set up canvas
@@ -90,112 +114,32 @@ public class Main extends Application {
   }
 
   /**
-   * Get user at a coordinate and Get user name
+   * set up canvas
    */
-  private String userAt(double x, double y) {
-    for (Map.Entry<String, ArrayList<Double>> p : coordinate.entrySet()) {
-      // get x coordinate
-      double xc = p.getValue().get(0);
-      // get y coordinate
-      double yc = p.getValue().get(1);
+  private void setBeginPage() {
+    // set canvas on action when mouse clicks
+    canvas.setOnMouseClicked(e -> {
+      gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      double diff = (x - xc) * (x - xc) + (y - yc) * (y - yc);
-      // set scope of mouse click
-      if (diff <= 50 * 50) {
-        return p.getKey();
-      }
-    }
-    return null;
-  }
-
-  /**
-   * set up the right box
-   */
-  private void setRightBox() {
-    // set right side's background color
-    rightBox.setBackground(new Background(
-        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
-    // right side button of design
-    Button viewHistory = new Button("View History");
-    // set on action of view History button
-    viewHistory.setOnAction(E -> {
-      Alert alert1 = new Alert(AlertType.NONE);
-      // set alert type
-      alert1.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-      // if (history.size() != 0)
-      // alert1.setContentText(history.toString());
-      alert1.showAndWait();
     });
 
-    // add button to the right box
-    rightBox.getChildren().add(viewHistory);
-  }
-
-
-  /**
-   * The class will be called by launch(args) in main method
-   * 
-   * @param primaryStage
-   * @throws FileNoteFoundException
-   */
-  @Override
-  public void start(Stage primaryStage) throws FileNotFoundException {
-    // save args
-    args = this.getParameters().getRaw();
-    // set color for graphic context
-    gc.setFill(Color.BLUE);
-
-    // Main layout is Border Pane
-    // (this includes top,left,center,right,bottom)
-    BorderPane root = new BorderPane();
-
-
-    menuBar.prefWidthProperty().bind(primaryStage.widthProperty());
-
-    // set up right
-    setRightBox();
-    // VBox bottomBox = new VBox();
-    // set up canvas
-    setCanvas();
-
-    // add to pane
-    root.setTop(menuBar);
-    root.setLeft(leftBox);
-    root.setRight(rightBox);
-    root.setCenter(canvas);
-
-    // set scene
-    Scene mainScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-
-    final Stage dia = new Stage();
-    dia.initModality(Modality.APPLICATION_MODAL);
-    dia.initOwner(primaryStage);
-    dia.setScene(new Scene(new GridPane(), 600, 200));
-    dia.show();;
+    set_BeginPage_BottomBox();
 
   }
 
   /**
-   * Main method
-   * 
-   * @param args
+   * set up the bottom box
    */
-  public static void main(String[] args) {
-    launch(args); // start the GUI, calls start method
+  private void set_BeginPage_BottomBox() {
+
+    try {
+
+      String type = null; // =input into the textfield box TODO
+      setUpConnection(type);
+      // Step 2: Allocate a 'Statement' object in the Connection
+      Statement stmt = conn.createStatement();
 
 
-
-    try (
-
-        // Step 1: Allocate a database 'Connection' object
-        Connection conn = DriverManager.getConnection(
-            "jdbc:mysql://127.0.0.1:3306/?user=user&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
-            "user", "CS564-G17");
-
-
-        // Step 2: Allocate a 'Statement' object in the Connection
-        Statement stmt = conn.createStatement();) {
       // Step 3: Execute a SQL SELECT query. The query result is returned in a 'ResultSet' object.
       String strSelect = "select title, price, qty from books";
       System.out.println("The SQL statement is: " + strSelect + "\n"); // Echo For debugging
@@ -218,6 +162,240 @@ public class Main extends Application {
     } catch (SQLException ex) {
       ex.printStackTrace();
     }
+
+  }
+
+
+  /**
+   * set up canvas
+   */
+  private void setMenuPage() {
+    // set canvas on action when mouse clicks
+    canvas.setOnMouseClicked(e -> {
+      gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    });
+  }
+
+  /**
+   * set up canvas
+   */
+  private void setSearchPage() {
+    // set canvas on action when mouse clicks
+    canvas.setOnMouseClicked(e -> {
+      gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    });
+
+    set_SearchPage_BottomBox();
+  }
+
+  /**
+   * set up the bottom box
+   */
+  private void set_SearchPage_BottomBox() {
+
+  }
+
+  /**
+   * set up canvas
+   */
+  private void setResultPage() {
+    set_ResultPage_BottomBox();
+  }
+
+  /**
+   * set up the bottom box
+   */
+  private void set_ResultPage_BottomBox() {
+
+  }
+
+
+  /**
+   * set up canvas
+   */
+  private void setFullAnimalRecordPage() {
+    set_FullAnimalRecordPage_LeftBox();
+    set_FullAnimalRecordPage_RightBox();
+    set_FullAnimalRecordPage_MiddleBox();
+    set_FullAnimalRecordPage_BottomBox();
+  }
+
+  /**
+   * set up the bottom box
+   */
+  private void set_FullAnimalRecordPage_LeftBox() {
+    // set right side's background color
+    leftBox.setBackground(new Background(
+        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // right side button of design
+    Button viewHistory = new Button("View History");
+    // set on action of view History button
+    viewHistory.setOnAction(E -> {
+      Alert alert1 = new Alert(AlertType.NONE);
+      // set alert type
+      alert1.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+      // if (history.size() != 0)
+      // alert1.setContentText(history.toString());
+      alert1.showAndWait();
+    });
+
+    // add button to the right box
+    leftBox.getChildren().add(viewHistory);
+
+  }
+
+  /**
+   * set up the bottom box
+   */
+  private void set_FullAnimalRecordPage_RightBox() {
+    // set color
+    rightBox.setBackground(new Background(
+        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+
+  }
+
+
+  /**
+   * set up the bottom box
+   */
+  private void set_FullAnimalRecordPage_MiddleBox() {
+
+  }
+
+  /**
+   * set up the bottom box
+   */
+  private void set_FullAnimalRecordPage_BottomBox() {
+
+  }
+
+  /**
+   * set up canvas
+   */
+  private void setFullUserInfoPage() {
+    set_FullUserInfoPage_BottomBox();
+  }
+
+  /**
+   * set up the bottom box
+   */
+  private void set_FullUserInfoPage_BottomBox() {
+
+  }
+
+
+
+  /**
+   * set up canvas
+   */
+  private void setUserAcountPage() {
+    set_UserAcountPage_BottomBox();
+    set_UserAcountPage_UpBox();
+  }
+
+
+  /**
+   * set up the bottom box
+   */
+  private void set_UserAcountPage_BottomBox() {
+
+  }
+
+  /**
+   * set up the bottom box
+   */
+  private void set_UserAcountPage_UpBox() {
+
+  }
+
+
+
+  /**
+   * set up canvas
+   */
+  private void setAdoptInfoPage() {
+    set_UserAcountPage_MiddleBox();
+  }
+
+  /**
+   * set up the bottom box
+   */
+  private void set_UserAcountPage_MiddleBox() {
+
+  }
+
+
+
+  /**
+   * Get user at a coordinate and Get user name
+   */
+  private String photoAt(double x, double y) {
+    for (Map.Entry<String, ArrayList<Double>> p : coordinate.entrySet()) {
+      // get x coordinate
+      double xc = p.getValue().get(0);
+      // get y coordinate
+      double yc = p.getValue().get(1);
+
+      double diff = (x - xc) * (x - xc) + (y - yc) * (y - yc);
+      // set scope of mouse click
+      if (diff <= 50 * 50) {
+        return p.getKey();
+      }
+    }
+    return null;
+  }
+
+
+  /**
+   * The class will be called by launch(args) in main method
+   * 
+   * @param primaryStage
+   * @throws FileNoteFoundException
+   */
+  @Override
+  public void start(Stage primaryStage) throws FileNotFoundException {
+    // save args
+    args = this.getParameters().getRaw();
+    // set color for graphic context
+    gc.setFill(Color.BLUE);
+
+    // Main layout is Border Pane
+    // (this includes top,left,center,right,bottom)
+    BorderPane root = new BorderPane();
+
+    menuBar.prefWidthProperty().bind(primaryStage.widthProperty());
+
+    // setup start page
+    setBeginPage();
+
+    // add to pane
+    root.setTop(menuBar);
+    root.setLeft(leftBox);
+    root.setRight(rightBox);
+    root.setCenter(canvas);
+
+    // set scene
+    Scene mainScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+
+    final Stage dia = new Stage();
+    dia.initModality(Modality.APPLICATION_MODAL);
+    dia.initOwner(primaryStage);
+    dia.setScene(new Scene(new GridPane(), 600, 200));
+    dia.show();
+
+  }
+
+  /**
+   * Main method
+   * 
+   * @param args
+   */
+  public static void main(String[] args) {
+    launch(args); // start the GUI, calls start method
+
   }
 
 }
