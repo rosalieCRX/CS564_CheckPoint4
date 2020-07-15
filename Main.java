@@ -1,11 +1,14 @@
 package application;
+
 /**
  * Filename: Main.java Project: group17 Authors: Rosalie Cai, Ruiqi Hu
  */
 
-
 import java.sql.*;
+import java.awt.Label;
+import java.awt.TextField;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.time.chrono.MinguoChronology;
@@ -21,9 +24,12 @@ import java.util.Scanner;
 import java.util.Set;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -31,24 +37,30 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TitledPane;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
 
 /**
  * Social network visualizer of ateam 7
@@ -77,11 +89,15 @@ public class Main extends Application {
   public static MenuBar menuBar = new MenuBar();// general data manipulation
   public static VBox rightBox = new VBox();// create vBox of right box
   public static VBox leftBox = new VBox();// general data search
-
+  public static VBox bottomBox = new VBox();
+  public static VBox middleBox = new VBox();
+  public static VBox upBox = new VBox();
 
   Connection conn;
 
 
+  // check userName
+  private static String userType="ADOPTER";
 
   // TODO: probably not needed
   /**
@@ -91,15 +107,17 @@ public class Main extends Application {
    * @throws SQLException
    */
   private void setUpConnection(String type) throws SQLException {
-    if (type.equals("user")) {
+    if (type.equals("ADOPTER") || type.equals("SURRENDER")) {
       conn = DriverManager.getConnection(
           "jdbc:mysql://127.0.0.1:3306/?user=user&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
           "user", "CS564-G17");
-    } else if (type.equals("admin")) {
+    } else if (type.equals("ADMIN")) {
       conn = DriverManager.getConnection(
           "jdbc:mysql://127.0.0.1:3306/?user=user&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
           "user", "CS564-G17");
     }
+
+
   }
 
   /**
@@ -122,25 +140,94 @@ public class Main extends Application {
       gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     });
+    try {
+      set_BeginPage_MiddleBox();
+      set_BeginPage_BottomBox();
+      setUpConnection(userType);
+    } catch (FileNotFoundException | SQLException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
+    }
 
-    set_BeginPage_BottomBox();
+    
+  
+  }
 
+  /**
+   * set up the bottom box
+   * @throws FileNotFoundException 
+   */
+  private void set_BeginPage_MiddleBox() throws FileNotFoundException {
+    Image begin = new Image(getClass().getResource("begin.jpg").toString(), true);
+    ImageView beginImage = new ImageView(begin);
+    middleBox.getChildren().add(beginImage);
+  
   }
 
   /**
    * set up the bottom box
    */
   private void set_BeginPage_BottomBox() {
+    // set a login button beside the userName
+    Button adoptlogin = new Button("ADOPTER");
+    Button surrenderlogin = new Button("SURRENDER");
+    Button adminlogin = new Button("ADMIN");
 
+    adoptlogin.setOnAction(ActionEvent -> {
+      userType = "ADOPTER";
+      setMenuPage();
+    });
+
+    surrenderlogin.setOnAction(ActionEvent -> {
+      userType = "SURRENDER";
+      setMenuPage();
+    });
+
+    adminlogin.setOnAction(ActionEvent -> {
+      userType = "ADMIN";
+      setMenuPage();
+    });
+
+    bottomBox.getChildren().add(adoptlogin);
+    bottomBox.getChildren().add(surrenderlogin);
+    bottomBox.getChildren().add(adminlogin);
+
+  }
+
+  /**
+   * set up canvas
+   */
+  private void setMenuPage() {
+    // set canvas on action when mouse clicks
+    Button userAccount = new Button();
+    userAccount.setOnAction(e -> setUserAcountPage());
+    canvas.setOnMouseClicked(e -> {
+    
+      // move to next page with userName login
+      setBeginPage();
+      gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    });
+  }
+
+
+
+  /**
+   * set up canvas
+   */
+  private void setSearchPage() {
+    // set canvas on action when mouse clicks
+    canvas.setOnMouseClicked(e -> {
+      gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    });
+
+    // Step 2: Allocate a 'Statement' object in the Connection
+    Statement stmt;
     try {
-
-      String type = null; // =input into the textfield box TODO
-      setUpConnection(type);
-      // Step 2: Allocate a 'Statement' object in the Connection
-      Statement stmt = conn.createStatement();
-
-
-      // Step 3: Execute a SQL SELECT query. The query result is returned in a 'ResultSet' object.
+      stmt = conn.createStatement();
+      // Step 3: Execute a SQL SELECT query. The query result is returned in a
+      // 'ResultSet' object.
       String strSelect = "select title, price, qty from books";
       System.out.println("The SQL statement is: " + strSelect + "\n"); // Echo For debugging
 
@@ -158,34 +245,12 @@ public class Main extends Application {
         ++rowCount;
       }
       System.out.println("Total number of records = " + rowCount);
-
-    } catch (SQLException ex) {
-      ex.printStackTrace();
+    } catch (SQLException e1) {
+      // TODO Auto-generated catch block
+      e1.printStackTrace();
     }
 
-  }
-
-
-  /**
-   * set up canvas
-   */
-  private void setMenuPage() {
-    // set canvas on action when mouse clicks
-    canvas.setOnMouseClicked(e -> {
-      gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    });
-  }
-
-  /**
-   * set up canvas
-   */
-  private void setSearchPage() {
-    // set canvas on action when mouse clicks
-    canvas.setOnMouseClicked(e -> {
-      gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    });
+ 
 
     set_SearchPage_BottomBox();
   }
@@ -195,6 +260,12 @@ public class Main extends Application {
    */
   private void set_SearchPage_BottomBox() {
 
+    // table for result page
+   TableView table = new TableView();
+   TableColumn Temperament = new TableColumn("Temperament");
+    TableColumn petName = new TableColumn("PetName");
+    TableColumn Location = new TableColumn("Location");
+  TableColumn animal = new TableColumn("Animal");
   }
 
   /**
@@ -208,9 +279,13 @@ public class Main extends Application {
    * set up the bottom box
    */
   private void set_ResultPage_BottomBox() {
+  //  table.getColumns().addAll(Temperament, petName, Location, animal);
+    VBox vbox = new VBox();
+    vbox.setSpacing(5);
+    vbox.setPadding(new Insets(10, 0, 0, 10));
 
+    // TODO connect to mysql and add each datum into vbox
   }
-
 
   /**
    * set up canvas
@@ -256,11 +331,13 @@ public class Main extends Application {
 
   }
 
-
   /**
    * set up the bottom box
    */
   private void set_FullAnimalRecordPage_MiddleBox() {
+    // set color
+    rightBox.setBackground(new Background(
+        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
 
   }
 
@@ -268,6 +345,9 @@ public class Main extends Application {
    * set up the bottom box
    */
   private void set_FullAnimalRecordPage_BottomBox() {
+    // set color
+    rightBox.setBackground(new Background(
+        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
 
   }
 
@@ -275,6 +355,7 @@ public class Main extends Application {
    * set up canvas
    */
   private void setFullUserInfoPage() {
+    Label label = new Label("User Information");
     set_FullUserInfoPage_BottomBox();
   }
 
@@ -282,10 +363,19 @@ public class Main extends Application {
    * set up the bottom box
    */
   private void set_FullUserInfoPage_BottomBox() {
-
+    Button userHistory = new Button();
+    userHistory.setOnAction(e -> {
+      TableView t = new TableView();
+      TableColumn adopt = new TableColumn();
+      TableColumn history = new TableColumn();
+  //    table.getColumns().addAll(adopt, history);
+      VBox vbox = new VBox();
+      vbox.setSpacing(5);
+      vbox.setPadding(new Insets(10, 0, 0, 10));
+      // TODO self join and add to table
+      // TODO adopt and total history and add to table
+    });
   }
-
-
 
   /**
    * set up canvas
@@ -294,7 +384,6 @@ public class Main extends Application {
     set_UserAcountPage_BottomBox();
     set_UserAcountPage_UpBox();
   }
-
 
   /**
    * set up the bottom box
@@ -310,8 +399,6 @@ public class Main extends Application {
 
   }
 
-
-
   /**
    * set up canvas
    */
@@ -323,10 +410,10 @@ public class Main extends Application {
    * set up the bottom box
    */
   private void set_UserAcountPage_MiddleBox() {
-
+    TextField tf = new TextField();
+    // could modify user's description
+    tf.setEditable(true);
   }
-
-
 
   /**
    * Get user at a coordinate and Get user name
@@ -346,7 +433,6 @@ public class Main extends Application {
     }
     return null;
   }
-
 
   /**
    * The class will be called by launch(args) in main method
@@ -378,7 +464,6 @@ public class Main extends Application {
 
     // set scene
     Scene mainScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
-
 
     final Stage dia = new Stage();
     dia.initModality(Modality.APPLICATION_MODAL);
