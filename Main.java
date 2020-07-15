@@ -73,7 +73,8 @@ import javafx.stage.Stage;
  * @author ateam7
  */
 public class Main extends Application {
-
+//see if the program just started
+  private boolean start =true;
   // private GridPane userBut = new GridPane();
   // store current coordinates of nodes
   private Map<String, ArrayList<Double>> coordinate = new HashMap<String, ArrayList<Double>>();
@@ -81,6 +82,9 @@ public class Main extends Application {
   private static final int WINDOW_WIDTH = 1200;// final value for pop-up window's width
   private static final int WINDOW_HEIGHT = 768;// final value for pop-up window's height
 
+  static Stage pstage;
+  static Stage dia;
+  
   private static final int CANVAS_WIDTH = 600;// final value for canvas's width
   private static final int CANVAS_HEIGHT = 600;// final value for canvas's width
 
@@ -125,13 +129,19 @@ public class Main extends Application {
 
   }
 
+  /**
+   * prepare the stage for loading a new page
+   */
   private void clearPage() {
+    
     menuBar = new MenuBar();// general data manipulation
     rightBox = new VBox();// create vBox of right box
     leftBox = new VBox();// general data search
     bottomBox = new VBox();
     middleBox = new VBox();
     upBox = new VBox();
+    dia.close();
+    start(pstage);
   }
 
   /**
@@ -150,7 +160,8 @@ public class Main extends Application {
    */
   private void setBeginPage() {
     try {
-      clearPage();
+      if(!start) {
+      clearPage();}
       set_BeginPage_MiddleBox();
       setUpConnection(userType);
     } catch (FileNotFoundException | SQLException e1) {
@@ -451,7 +462,8 @@ public class Main extends Application {
    * @throws FileNoteFoundException
    */
   @Override
-  public void start(Stage primaryStage) throws FileNotFoundException {
+  public void start(Stage primaryStage){
+    Main.pstage=primaryStage;
     // save args
     args = this.getParameters().getRaw();
     // set color for graphic context
@@ -464,8 +476,11 @@ public class Main extends Application {
  //   menuBar.prefWidthProperty().bind(primaryStage.widthProperty());
 
     // setup start page
+    if(start) {
     setBeginPage();
-
+    start = false;
+    }
+    
     // add to pane
     root.setTop(upBox);
     root.setLeft(leftBox);
@@ -479,8 +494,7 @@ public class Main extends Application {
 
     // set scene
     Scene mainScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    final Stage dia = new Stage();
+    dia = new Stage();
     dia.initModality(Modality.APPLICATION_MODAL);
     dia.initOwner(primaryStage);
     dia.setScene(mainScene);
@@ -495,7 +509,6 @@ public class Main extends Application {
    */
   public static void main(String[] args) {
     launch(args); // start the GUI, calls start method
-
   }
 
 }
