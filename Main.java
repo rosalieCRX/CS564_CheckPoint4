@@ -30,6 +30,7 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Side;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -51,6 +52,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.BackgroundImage;
+import javafx.scene.layout.BackgroundPosition;
+import javafx.scene.layout.BackgroundRepeat;
+import javafx.scene.layout.BackgroundSize;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
@@ -73,7 +78,7 @@ public class Main extends Application {
   // store current coordinates of nodes
   private Map<String, ArrayList<Double>> coordinate = new HashMap<String, ArrayList<Double>>();
   private List<String> args;
-  private static final int WINDOW_WIDTH = 1024;// final value for pop-up window's width
+  private static final int WINDOW_WIDTH = 1200;// final value for pop-up window's width
   private static final int WINDOW_HEIGHT = 768;// final value for pop-up window's height
 
   private static final int CANVAS_WIDTH = 600;// final value for canvas's width
@@ -86,18 +91,18 @@ public class Main extends Application {
   // set title of this project
   private static final String APP_TITLE = "Animal Shelter @ Austin  CS564-Group17";
 
-  public static MenuBar menuBar = new MenuBar();// general data manipulation
-  public static VBox rightBox = new VBox();// create vBox of right box
-  public static VBox leftBox = new VBox();// general data search
-  public static VBox bottomBox = new VBox();
-  public static VBox middleBox = new VBox();
-  public static VBox upBox = new VBox();
+  public static MenuBar menuBar;// general data manipulation
+  public static VBox rightBox;// create vBox of right box
+  public static VBox leftBox;// general data search
+  public static VBox bottomBox;
+  public static VBox middleBox;
+  public static VBox upBox;
 
   Connection conn;
 
 
   // check userName
-  private static String userType="ADOPTER";
+  private static String userType = "ADOPTER";
 
   // TODO: probably not needed
   /**
@@ -120,6 +125,15 @@ public class Main extends Application {
 
   }
 
+  private void clearPage() {
+    menuBar = new MenuBar();// general data manipulation
+    rightBox = new VBox();// create vBox of right box
+    leftBox = new VBox();// general data search
+    bottomBox = new VBox();
+    middleBox = new VBox();
+    upBox = new VBox();
+  }
+
   /**
    * set up canvas
    */
@@ -135,39 +149,34 @@ public class Main extends Application {
    * set up canvas
    */
   private void setBeginPage() {
-    // set canvas on action when mouse clicks
-    canvas.setOnMouseClicked(e -> {
-      gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    });
     try {
+      clearPage();
       set_BeginPage_MiddleBox();
-      set_BeginPage_BottomBox();
       setUpConnection(userType);
     } catch (FileNotFoundException | SQLException e1) {
-      // TODO Auto-generated catch block
+
       e1.printStackTrace();
     }
 
-    
-  
   }
 
   /**
    * set up the bottom box
-   * @throws FileNotFoundException 
+   * 
+   * @throws FileNotFoundException
    */
   private void set_BeginPage_MiddleBox() throws FileNotFoundException {
+    middleBox = new VBox();
+   
+    Image title = new Image(getClass().getResource("Title.png").toString(), true);
+    ImageView titleImage = new ImageView(title);
+    middleBox.getChildren().add(titleImage);
+    
     Image begin = new Image(getClass().getResource("begin.jpg").toString(), true);
     ImageView beginImage = new ImageView(begin);
     middleBox.getChildren().add(beginImage);
-  
-  }
+    
 
-  /**
-   * set up the bottom box
-   */
-  private void set_BeginPage_BottomBox() {
     // set a login button beside the userName
     Button adoptlogin = new Button("ADOPTER");
     Button surrenderlogin = new Button("SURRENDER");
@@ -188,21 +197,22 @@ public class Main extends Application {
       setMenuPage();
     });
 
-    bottomBox.getChildren().add(adoptlogin);
-    bottomBox.getChildren().add(surrenderlogin);
-    bottomBox.getChildren().add(adminlogin);
-
+    middleBox.getChildren().add(adoptlogin);
+    middleBox.getChildren().add(surrenderlogin);
+    middleBox.getChildren().add(adminlogin);
+    middleBox.setAlignment(Pos.CENTER);
   }
 
   /**
    * set up canvas
    */
   private void setMenuPage() {
+    clearPage();
     // set canvas on action when mouse clicks
     Button userAccount = new Button();
     userAccount.setOnAction(e -> setUserAcountPage());
     canvas.setOnMouseClicked(e -> {
-    
+
       // move to next page with userName login
       setBeginPage();
       gc.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -250,7 +260,7 @@ public class Main extends Application {
       e1.printStackTrace();
     }
 
- 
+
 
     set_SearchPage_BottomBox();
   }
@@ -261,11 +271,11 @@ public class Main extends Application {
   private void set_SearchPage_BottomBox() {
 
     // table for result page
-   TableView table = new TableView();
-   TableColumn Temperament = new TableColumn("Temperament");
+    TableView table = new TableView();
+    TableColumn Temperament = new TableColumn("Temperament");
     TableColumn petName = new TableColumn("PetName");
     TableColumn Location = new TableColumn("Location");
-  TableColumn animal = new TableColumn("Animal");
+    TableColumn animal = new TableColumn("Animal");
   }
 
   /**
@@ -279,7 +289,7 @@ public class Main extends Application {
    * set up the bottom box
    */
   private void set_ResultPage_BottomBox() {
-  //  table.getColumns().addAll(Temperament, petName, Location, animal);
+    // table.getColumns().addAll(Temperament, petName, Location, animal);
     VBox vbox = new VBox();
     vbox.setSpacing(5);
     vbox.setPadding(new Insets(10, 0, 0, 10));
@@ -368,7 +378,7 @@ public class Main extends Application {
       TableView t = new TableView();
       TableColumn adopt = new TableColumn();
       TableColumn history = new TableColumn();
-  //    table.getColumns().addAll(adopt, history);
+      // table.getColumns().addAll(adopt, history);
       VBox vbox = new VBox();
       vbox.setSpacing(5);
       vbox.setPadding(new Insets(10, 0, 0, 10));
@@ -451,16 +461,21 @@ public class Main extends Application {
     // (this includes top,left,center,right,bottom)
     BorderPane root = new BorderPane();
 
-    menuBar.prefWidthProperty().bind(primaryStage.widthProperty());
+ //   menuBar.prefWidthProperty().bind(primaryStage.widthProperty());
 
     // setup start page
     setBeginPage();
 
     // add to pane
-    root.setTop(menuBar);
+    root.setTop(upBox);
     root.setLeft(leftBox);
     root.setRight(rightBox);
-    root.setCenter(canvas);
+    root.setCenter(middleBox);
+    root.setBottom(bottomBox);
+    
+   root.setBackground(new Background(new BackgroundImage(new Image(getClass().getResource("bg.jpg").toString(),true),
+        BackgroundRepeat.NO_REPEAT, BackgroundRepeat.NO_REPEAT, new BackgroundPosition(Side.RIGHT, 0, false, Side.BOTTOM, 0, false),
+          new BackgroundSize(500, 334, false, false, false, false))));
 
     // set scene
     Scene mainScene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -468,7 +483,7 @@ public class Main extends Application {
     final Stage dia = new Stage();
     dia.initModality(Modality.APPLICATION_MODAL);
     dia.initOwner(primaryStage);
-    dia.setScene(new Scene(new GridPane(), 600, 200));
+    dia.setScene(mainScene);
     dia.show();
 
   }
