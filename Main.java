@@ -104,7 +104,8 @@ public class Main extends Application {
 
   Connection conn;
   Statement stmt;
-  Random rand = new Random();
+  int nextUserID = 10030;
+  int nextAnimalID = 176977;
 
   // check userName
   private static String userType = "ADOPTER";
@@ -174,11 +175,11 @@ public class Main extends Application {
 
   }
 
-  private void add_Animal(String name) throws SQLException {
+  private void add_Animal(String attibutes) throws SQLException {
     // query for grouping animal
-    String query = "insert into Animal (" + Math.abs(rand.nextInt()) + "," + name;
+    String query = "insert into Animal (" + nextAnimalID + "," + attibutes;
     stmt.executeQuery(query);
-
+    nextAnimalID++;
   }
 
   private void remove_Animal(int ID) throws SQLException {
@@ -187,10 +188,11 @@ public class Main extends Application {
     stmt.executeQuery(query);
   }
 
-  private void add_User(String name) throws SQLException {
+  private void add_User(String attibutes) throws SQLException {
     // query for grouping animal
-    String query = "insert into All_Users (" + Math.abs(rand.nextInt()) + "," + name;
+    String query = "insert into All_Users (" + nextUserID + "," + attibutes;
     stmt.executeQuery(query);
+    nextUserID++;
   }
 
   private void remove_User(int ID) throws SQLException {
@@ -210,10 +212,12 @@ public class Main extends Application {
   private String storedProcedure_Prelim_Sort_userType() throws SQLException {
     String results = "";
     CallableStatement myCallStmt = conn.prepareCall("call " + "basicUserSelection(?)");
+
     myCallStmt.setInt(1, userID);
+
     ResultSet total = myCallStmt.executeQuery();
     if (total.next()) {
-      results = "User ID: " + total.getInt(1) + "\nName: " + total.getInt(2);
+      results = "User ID: " + total.getInt("User_Id") + "\nName: " + total.getString("Name");
     }
     return results;
   }
@@ -254,30 +258,31 @@ public class Main extends Application {
   }
 
 
-/**
- * get result based on search conditions
- * @param stringAttributes
- * @return
- */
+  /**
+   * get result based on search conditions
+   * 
+   * @param stringAttributes
+   * @return
+   */
   private ArrayList<ArrayList<String>> animal_Search(String stringAttributes, int intAttribute) {
-ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
+    ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     try {
       String query;
       if (menuType.equals("dog_cat")) {
 
-        query =
-            "SELECT " + stringAttributes + " FROM Animal " + " WHERE breed_Name IN (select breed_name "
-                + "From Classification " + "where species_name = 'Dog' or species_name = 'Cat'));";
+        query = "SELECT " + stringAttributes + " FROM Animal "
+            + " WHERE breed_Name IN (select breed_name " + "From Classification "
+            + "where species_name = 'Dog' or species_name = 'Cat'));";
       } else {
-        query =
-            "SELECT " + stringAttributes + " FROM Animal " + " WHERE breed_Name IN (select breed_name "
-                + "From Classification" + "where NOT(species_name = 'Dog' or species_name = 'Cat'));";
+        query = "SELECT " + stringAttributes + " FROM Animal "
+            + " WHERE breed_Name IN (select breed_name " + "From Classification"
+            + "where NOT(species_name = 'Dog' or species_name = 'Cat'));";
       }
 
       ResultSet rs = stmt.executeQuery(query);
       while (rs.next()) {
         ArrayList<String> row = new ArrayList<String>();
-        for(int i=0;i<rs.getMetaData().getColumnCount();i++) {
+        for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
           row.add(rs.getString(i));
         }
         result.add(row);
@@ -391,6 +396,8 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     surrenderlogin.setPrefSize(120, 40);
     Button adminlogin = new Button("ADMIN");
     adminlogin.setPrefSize(120, 40);
+    Button register = new Button("Register as a new User");
+    register.setPrefSize(120, 40);
 
     // set up functionality
     adoptlogin.setOnAction(ActionEvent -> {
@@ -411,15 +418,37 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
       setMenuPage();
     });
 
+    register.setOnAction(ActionEvent -> {
+      // set up the user type for future uses
+      // Todo:.....new page
+
+      setMenuPage();
+    });
+
     middleBox.getChildren().add(adoptlogin);
     middleBox.getChildren().add(surrenderlogin);
     middleBox.getChildren().add(adminlogin);
+    middleBox.getChildren().add(register);
     middleBox.setAlignment(Pos.CENTER);
   }
 
+  /**
+   * get the login id for user
+   */
   private void getID() {
     clearPage();
+    upBox = new VBox();
     middleBox = new VBox();
+
+    Button back = new Button("Back");
+    back.setPrefSize(300, 40);
+    back.setOnAction(e -> {
+      setBeginPage();
+
+    });
+
+    upBox.getChildren().add(back);
+
 
     // setting up the page
     Image title = new Image(getClass().getResource("Title.png").toString(), true);
@@ -430,7 +459,7 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     ImageView beginImage = new ImageView(begin);
     middleBox.getChildren().add(beginImage);
 
-    Button prompt = new Button("Helle there! Please type your userID!");
+    Button prompt = new Button("Hello there! Please type your userID!");
     prompt.setPrefSize(300, 40);
     TextField userId = new TextField();
     userId.setMaxSize(300, 50);
@@ -439,6 +468,7 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     submit.setPrefSize(300, 40);
     submit.setOnAction(e -> {
       if ((userId.getText() != null && !userId.getText().isEmpty())) {
+        userID = Integer.parseInt(userId.getText());
         setMenuPage();
       }
     });
@@ -452,16 +482,71 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
   private void setMenuPage() {
     clearPage();
 
-    set_MenuPage_upBox();
-    setMenuPage_rightBox();
-    setMenuPage_leftBox();
-    setMenuPage_bottomBox();
+    set_MenuPage_MiddleBox();
+    setMenuPage_upBox();
+   
+
+  }
+  
+  private void setMenuPage_upBox() {
+    upBox= new VBox();
+    Text tx = null;
+    try {
+      tx = new Text(storedProcedure_Prelim_Sort_userType());
+      tx.setFont(Font.font("Copperplate", 20));
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    
+    leftBox = new VBox();
+    rightBox = new VBox();
+    leftBox.setPrefWidth(500);
+    upBox.setPrefHeight(250);
+
+  
+    upBox.getChildren().add( tx);
+
+
+    start(pstage);
+  }
+
+  private void set_MenuPage_MiddleBox() {
+    middleBox = new VBox();
+    Button search = new Button("Start Searching Animal");
+    Button statistic = new Button("Statistic for Animals");
+    Button userAccount = new Button("User Account");
+    search.setOnAction(e -> setPrelimSearchPage());
+    statistic.setOnAction(e -> {
+      // connect on statistic method
+      setStatsPage();
+    });
+
+    userAccount.setOnAction(e -> setUserAcountPage());
+    middleBox.getChildren().addAll(search, statistic, userAccount);
+  }
+
+  private void setPrelimSearchPage() {
+    clearPage();
+
+    set_PrelimSearchPage_leftBox();
+    set_PrelimSearchPage_rightBox();
+    set_PrelimSearchPage_rightBox();
+    set_PrelimSearch_Page_upBox();
     start(pstage);
 
   }
 
-  private void setMenuPage_bottomBox() {
-    bottomBox = new VBox();
+  private void setStatsPage() {
+    clearPage();
+
+    set_StatsPage_middleBox();
+    set_PrelimSearch_Page_upBox();
+
+    start(pstage);
+  }
+
+  private void set_StatsPage_middleBox() {
+    middleBox = new VBox();
     Text summary = new Text();
     try {
       summary.setText("\n\n\n" + storedProcedure_basicDebrief() + "\n\n\n");
@@ -477,17 +562,17 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
       // query for grouping animal
       String query = "select c.Specis_Name, count(*) " + "from Animal a, Classification c "
           + "where a.Classification_Breed_Name = c.Breed_Name " + "group by c.Specis_Name";
-      bottomBox.getChildren().add(getItemGraphStatistics(stmt.executeQuery(query)));
+      middleBox.getChildren().add(getItemGraphStatistics(stmt.executeQuery(query)));
 
     } catch (SQLException e1) {
       e1.printStackTrace();
     }
 
-    bottomBox.resize(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 3);
-    bottomBox.getChildren().add(summary);
+    middleBox.resize(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 3);
+    middleBox.getChildren().add(summary);
   }
 
-  private void setMenuPage_rightBox() {
+  private void set_PrelimSearchPage_rightBox() {
     rightBox = new VBox();
 
     Image dogCat = new Image(getClass().getResource("dog_cat.jpg").toString(), true);
@@ -510,7 +595,7 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 
   }
 
-  private void setMenuPage_leftBox() {
+  private void set_PrelimSearchPage_leftBox() {
     leftBox = new VBox();
     Image others = new Image(getClass().getResource("others.jpg").toString(), true);
     ImageView othersImage = new ImageView(others);
@@ -532,7 +617,7 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
   }
 
 
-  private void set_MenuPage_upBox() {
+  private void set_PrelimSearch_Page_upBox() {
     upBox = new VBox();
 
     Button userpage = new Button("USER ACCOUNT");
@@ -559,7 +644,6 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
   private void setSearchPage() {
     clearPage();
 
-
     // middleBox
     set_SearchPage_middleBox();
 
@@ -568,7 +652,7 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     upBox = new VBox();
     leftBox.setPrefWidth(400);
     rightBox.setPrefWidth(400);
-    upBox.setPrefHeight(300);
+    // upBox.setPrefHeight(300);
     // middleBox
     set_SearchPage_middleBox();
 
@@ -596,8 +680,22 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     gridPane.add(textField, 0, 0);
     gridPane.add(search, 1, 0);
 
-
-
+    VBox vb = new VBox();
+    TableView tb = new TableView();
+    TableColumn animalID = new TableColumn("Animal ID");
+    animalID.setPrefWidth(100);
+    TableColumn animalName = new TableColumn("Animal Name");
+    animalName.setPrefWidth(100);
+    TableColumn sex = new TableColumn("Sex of the Animal");
+    sex.setPrefWidth(100);
+    TableColumn date = new TableColumn("Date of Birth");
+    date.setPrefWidth(100);
+    TableColumn outcome = new TableColumn("a Outcome Type");
+    outcome.setPrefWidth(100);
+    TableColumn breed = new TableColumn("Breed Name");
+    breed.setPrefWidth(100);
+    tb.getColumns().addAll(animalID, animalName, sex, date, outcome, breed);
+    vb.getChildren().addAll(tb);
     // add preliminary searchable examples
     try {
       storedProcedure_Prelim_Sort_menuType();
@@ -605,9 +703,7 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
       e1.printStackTrace();
     }
 
-
-
-    middleBox.getChildren().add(gridPane);
+    middleBox.getChildren().addAll(gridPane, vb);
 
   }
 
@@ -907,24 +1003,24 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
    */
   private void setUserAcountPage() {
     clearPage();
-    set_UserAcountPage_UpBox();
-    set_UserAcountPage_rightBox();
+    set_UserAcountPage_middleBox();
+    set_UserAcountPage_upBox();
     start(pstage);
   }
 
   /**
    * set up the bottom box
    */
-  private void set_UserAcountPage_rightBox() {
-    rightBox = new VBox();
+  private void set_UserAcountPage_upBox() {
+    upBox = new VBox();
     // add Button to go back to the menu page
     Button menu = new Button("menu");
     menu.setPrefSize(80, 40);
     menu.setOnAction(e -> setMenuPage());
-    rightBox.getChildren().add(menu);
+    upBox.getChildren().add(menu);
   }
 
-  private void set_UserAcountPage_UpBox() {
+  private void set_UserAcountPage_middleBox() {
     upBox = new VBox();
     Label label = new Label("User Account");
     // TODO user could change his or her user name
@@ -966,16 +1062,8 @@ ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     gridPane.add(addr, 1, 2);
     gridPane.add(save, 4, 4);
 
-    // TODO load surrender's note from data
-    // if the user is the surrenderer then
-    String ownerNote = null;
 
-    TextField note = new TextField();
-    note.setEditable(true);
-    note.setText(ownerNote);
-    note.setPrefSize(300, 300);
-
-    upBox.getChildren().addAll(gridPane, note);
+    middleBox.getChildren().addAll(gridPane);
   }
 
   /**
