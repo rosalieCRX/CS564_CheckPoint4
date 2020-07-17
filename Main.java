@@ -34,7 +34,11 @@ import javafx.geometry.Side;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
@@ -77,6 +81,7 @@ import javafx.stage.Stage;
  */
 public class Main extends Application {
   // see if the program just started
+
   private boolean start = true;
   // private GridPane userBut = new GridPane();
   // store current coordinates of nodes
@@ -98,33 +103,218 @@ public class Main extends Application {
   public static VBox upBox;
 
   Connection conn;
-
+  Statement stmt;
+  Random rand = new Random();
 
   // check userName
   private static String userType = "ADOPTER";
+  private static int userID = 0;
   private static String menuType;
 
-  // TODO: probably not needed
+  // ----------------------------------------SQL--------------------------------------------
   /**
-   * set up user based on their user type
+   * set up connection
    * 
    * @param type
    * @throws SQLException
    */
-  private void setUpConnection(String type) throws SQLException {
-    if (type.equals("ADOPTER") || type.equals("SURRENDER")) {
-      conn = DriverManager.getConnection(
-          "jdbc:mysql://127.0.0.1:3306/?user=user&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
-          "user", "CS564-G17");
-    } else if (type.equals("ADMIN")) {
-      conn = DriverManager.getConnection(
-          "jdbc:mysql://127.0.0.1:3306/?user=user&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC",
-          "user", "CS564-G17");
-    }
+  private void setUpConnection() throws SQLException {
+    String databasePrefix = "animal_shelter";
+    String hostName = "localhost";
+    String databaseURL = "jdbc:mysql://127.0.0.1:3306/" + databasePrefix + "?user=" + hostName
+        + "&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC";
+    String password = "CS564-G17";
+    conn = DriverManager.getConnection(databaseURL, "admin", password);
 
+    stmt = conn.createStatement();
+  }
+
+  // Use generic types
+  private BarChart<String, Number> getItemGraphStatistics(ResultSet rs) {
+    final CategoryAxis xAxis = new CategoryAxis();
+    final NumberAxis yAxis = new NumberAxis();
+    final BarChart<String, Number> bc = new BarChart<String, Number>(xAxis, yAxis);
+
+    bc.setTitle("Shelter Summary");
+    bc.setAnimated(true);
+    bc.setMaxSize(400, 400);
+    bc.setCategoryGap(40);
+    xAxis.setLabel("Species");
+    xAxis.setTickLabelRotation(40);
+    yAxis.setLabel("Number");
+
+
+    try {
+      while (rs.next()) {
+        String item = rs.getString(1);
+        int count = rs.getInt(2);
+        XYChart.Series series = new XYChart.Series();
+        series.getData().add(new XYChart.Data(item, count));
+        bc.getData().add((series));
+
+      }
+    } catch (SQLException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return bc;
+  }
+
+  /**
+   * present results based on whehter the user selected dog_cat or others to start searching
+   * 
+   * @return
+   * @throws SQLException
+   */
+  private ResultSet storedProcedure_Prelim_Sort_menuType() throws SQLException {
+    CallableStatement myCallStmt = conn.prepareCall("call " + "basicAnimalSelection(?)");
+    myCallStmt.setString(1, menuType);
+    ResultSet total = myCallStmt.executeQuery();
+    return total;
 
   }
 
+  private void add_Animal(String name) throws SQLException {
+    // query for grouping animal
+    String query = "insert into Animal (" + Math.abs(rand.nextInt()) + "," + name;
+    stmt.executeQuery(query);
+
+  }
+
+  private void remove_Animal(int ID) throws SQLException {
+    // query for grouping animal
+    String query = "delete from Animal " + "Where Animal_ID = " + ID;
+    stmt.executeQuery(query);
+  }
+
+  private void add_User(String name) throws SQLException {
+    // query for grouping animal
+    String query = "insert into All_Users (" + Math.abs(rand.nextInt()) + "," + name;
+    stmt.executeQuery(query);
+  }
+
+  private void remove_User(int ID) throws SQLException {
+    // query for grouping animal
+    String query = "delete from All_Users " + "Where User_ID = " + ID;
+    stmt.executeQuery(query);
+
+  }
+
+
+  /**
+   * present results based on whehter the user selected dog_cat or others to start searching
+   * 
+   * @return
+   * @throws SQLException
+   */
+  private String storedProcedure_Prelim_Sort_userType() throws SQLException {
+    String results = "";
+    CallableStatement myCallStmt = conn.prepareCall("call " + "basicUserSelection(?)");
+    myCallStmt.setInt(1, userID);
+    ResultSet total = myCallStmt.executeQuery();
+    if (total.next()) {
+      results = "User ID: " + total.getInt(1) + "\nName: " + total.getInt(2);
+    }
+    return results;
+  }
+
+
+  /**
+   * present results based on whehter the user selected dog_cat or others to start searching
+   * 
+   * @return
+   * @throws SQLException
+   */
+  private String storedProcedure_basicDebrief() throws SQLException {
+    String results = "";
+    CallableStatement myCallStmt = conn.prepareCall("call " + "basicDebrief");
+
+    ResultSet rs1 = myCallStmt.executeQuery();
+    if (rs1.next())
+      results = "     The total number of animals in our shelter is " + rs1.getInt(1) + " ,from "
+          + rs1.getInt(2) + " species\n";
+    myCallStmt.getMoreResults();
+
+    rs1 = myCallStmt.getResultSet();
+    if (rs1.next())
+      results +=
+          "     The total number of users registered at our shelter is " + rs1.getInt(1) + "\n";
+    myCallStmt.getMoreResults();
+
+    rs1 = myCallStmt.getResultSet();
+    if (rs1.next())
+      results += "           " + rs1.getInt(1) + " are Potential_Adopters\n";
+
+    myCallStmt.getMoreResults();
+    rs1 = myCallStmt.getResultSet();
+    if (rs1.next())
+      results += "           " + rs1.getInt(1) + " are Surrender_Owners";
+
+    return results;
+  }
+
+
+
+  private ResultSet animal_Search(String attributes) {
+
+    try {
+      String query;
+      if (menuType.equals("dog_cat")) {
+
+        query =
+            "SELECT " + attributes + " FROM Animal " + " WHERE breed_Name IN (select breed_name "
+                + "From Classification " + "where species_name = 'Dog' or species_name = 'Cat'));";
+      } else {
+        query =
+            "SELECT " + attributes + " FROM Animal " + " WHERE breed_Name IN (select breed_name "
+                + "From Classification" + "where NOT(species_name = 'Dog' or species_name = 'Cat'));";
+      }
+
+      ResultSet rs = stmt.executeQuery(query);
+      while (rs.next()) {
+
+      }
+    } catch (Exception e) {
+      System.out.println("Error on DB connection");
+
+    }
+    return null;
+  }
+
+  /**
+   * for observable list
+   * 
+   * @param attributes
+   * @return
+   */
+  private ObservableList<PieChart.Data> pieChart_Animal_Search(String attributes) {
+    ObservableList data = FXCollections.observableArrayList();
+    try {
+      String query;
+      if (menuType.equals("dog_cat")) {
+
+        query = "SELECT " + attributes + ", count(*)" + " FROM Animal "
+            + " WHERE breed_Name IN (select breed_name " + "From Classification "
+            + "where species_name = 'Dog' or species_name = 'Cat')) " + "Group by breed_Name;";
+      } else {
+        query = "SELECT " + attributes + ", count(*)" + " FROM Animal "
+            + " WHERE breed_Name IN (select breed_name " + "From Classification"
+            + "where NOT(species_name = 'Dog' or species_name = 'Cat')) " + "Group by breed_Name;";
+      }
+
+      ResultSet rs = stmt.executeQuery(query);
+      while (rs.next()) {
+        // adding data on piechart data
+        data.add(new PieChart.Data(rs.getString(1), rs.getInt(2)));
+      }
+    } catch (Exception e) {
+      System.out.println("Error on DB connection");
+    }
+
+    return data;
+  }
+
+  // ------------------------------------GUI----------------------------------------------
   /**
    * prepare the stage for loading a new page
    */
@@ -140,22 +330,30 @@ public class Main extends Application {
 
 
   /**
-   * set up canvas
+   * set up BeginPage
    */
   private void setBeginPage() {
     try {
+      // clear the page for setting up new pages if this is not the first time the program has
+      // started
       if (!start) {
         clearPage();
       }
-      set_BeginPage_MiddleBox();
-      setUpConnection(userType);
+      // if this program just started, set up connection to the database
+      else {
+        setUpConnection();
+      }
 
+      set_BeginPage_MiddleBox();
+
+      // update the stage with newly set up GUI
       if (!start) {
         start(pstage);
       }
-    } catch (SQLException e1) {
 
-      e1.printStackTrace();
+
+    } catch (SQLException e1) {
+      System.out.println("Loading database failed");
     }
 
   }
@@ -168,6 +366,7 @@ public class Main extends Application {
   private void set_BeginPage_MiddleBox() {
     middleBox = new VBox();
 
+    // setting up the page
     Image title = new Image(getClass().getResource("Title.png").toString(), true);
     ImageView titleImage = new ImageView(title);
     middleBox.getChildren().add(titleImage);
@@ -179,20 +378,27 @@ public class Main extends Application {
 
     // set a login button beside the userName
     Button adoptlogin = new Button("ADOPTER");
+    adoptlogin.setPrefSize(120, 40);
     Button surrenderlogin = new Button("SURRENDER");
+    surrenderlogin.setPrefSize(120, 40);
     Button adminlogin = new Button("ADMIN");
+    adminlogin.setPrefSize(120, 40);
 
+    // set up functionality
     adoptlogin.setOnAction(ActionEvent -> {
+      // set up the user type for future uses
       userType = "ADOPTER";
-      setMenuPage();
+      getID();
     });
 
     surrenderlogin.setOnAction(ActionEvent -> {
+      // set up the user type for future uses
       userType = "SURRENDER";
-      setMenuPage();
+      getID();
     });
 
     adminlogin.setOnAction(ActionEvent -> {
+      // set up the user type for future uses
       userType = "ADMIN";
       setMenuPage();
     });
@@ -203,7 +409,37 @@ public class Main extends Application {
     middleBox.setAlignment(Pos.CENTER);
   }
 
+  private void getID() {
+    clearPage();
+    middleBox = new VBox();
 
+    // setting up the page
+    Image title = new Image(getClass().getResource("Title.png").toString(), true);
+    ImageView titleImage = new ImageView(title);
+    middleBox.getChildren().add(titleImage);
+
+    Image begin = new Image(getClass().getResource("begin.jpg").toString(), true);
+    ImageView beginImage = new ImageView(begin);
+    middleBox.getChildren().add(beginImage);
+
+    Button prompt = new Button("Helle there! Please type your userID!");
+    prompt.setPrefSize(300, 40);
+    TextField userId = new TextField();
+    userId.setMaxSize(300, 50);
+    userId.setMinSize(300, 50);
+    Button submit = new Button("Submit & Begin");
+    submit.setPrefSize(300, 40);
+    submit.setOnAction(e -> {
+      if ((userId.getText() != null && !userId.getText().isEmpty())) {
+        setMenuPage();
+      }
+    });
+    middleBox.getChildren().addAll(prompt, userId, submit);
+    middleBox.setAlignment(Pos.CENTER);
+
+    start(pstage);
+
+  }
 
   private void setMenuPage() {
     clearPage();
@@ -211,12 +447,41 @@ public class Main extends Application {
     set_MenuPage_upBox();
     setMenuPage_rightBox();
     setMenuPage_leftBox();
+    setMenuPage_bottomBox();
     start(pstage);
 
   }
 
+  private void setMenuPage_bottomBox() {
+    bottomBox = new VBox();
+    Text summary = new Text();
+    try {
+      summary.setText("\n\n\n" + storedProcedure_basicDebrief() + "\n\n\n");
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    summary.setFont(Font.font("Copperplate", 20));
+
+
+
+    // add preliminary searchable examples
+    try {
+      // query for grouping animal
+      String query = "select c.Specis_Name, count(*) " + "from Animal a, Classification c "
+          + "where a.Classification_Breed_Name = c.Breed_Name " + "group by c.Specis_Name";
+      bottomBox.getChildren().add(getItemGraphStatistics(stmt.executeQuery(query)));
+
+    } catch (SQLException e1) {
+      e1.printStackTrace();
+    }
+
+    bottomBox.resize(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 3);
+    bottomBox.getChildren().add(summary);
+  }
+
   private void setMenuPage_rightBox() {
     rightBox = new VBox();
+
     Image dogCat = new Image(getClass().getResource("dog_cat.jpg").toString(), true);
     ImageView dogCatImage = new ImageView(dogCat);
 
@@ -226,12 +491,12 @@ public class Main extends Application {
       setSearchPage();
     });
 
-    dogCatImage.setFitHeight(305);
-    dogCatImage.setFitWidth(542);
+    dogCatImage.setFitHeight(305 / 1.2);
+    dogCatImage.setFitWidth(542 / 1.2);
 
     Text dc = new Text();
     dc.setText("Click the image and search for cats and dogs!");
-    dc.setFont(Font.font("Verdana", 20));
+    dc.setFont(Font.font("Copperplate", 20));
 
     rightBox.getChildren().addAll(dogCatImage, dc);
 
@@ -242,8 +507,8 @@ public class Main extends Application {
     Image others = new Image(getClass().getResource("others.jpg").toString(), true);
     ImageView othersImage = new ImageView(others);
 
-    othersImage.setFitHeight(300);
-    othersImage.setFitWidth(722);
+    othersImage.setFitHeight(300 / 1.2);
+    othersImage.setFitWidth(722 / 1.2);
 
     othersImage.setPickOnBounds(true); // allows click on transparent areas
     othersImage.setOnMouseClicked((MouseEvent e) -> {
@@ -253,7 +518,7 @@ public class Main extends Application {
 
     Text ot = new Text();
     ot.setText("Click the image and search for other pets!");
-    ot.setFont(Font.font("Verdana", 20));
+    ot.setFont(Font.font("Copperplate", 20));
 
     leftBox.getChildren().addAll(othersImage, ot);
   }
@@ -264,10 +529,18 @@ public class Main extends Application {
 
     Button userpage = new Button("USER ACCOUNT");
 
+    Text tx = null;
+    try {
+      tx = new Text(storedProcedure_Prelim_Sort_userType());
+      tx.setFont(Font.font("Copperplate", 20));
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+
     userpage.setOnAction(ActionEvent -> {
       setUserAcountPage();
     });
-    upBox.getChildren().add(userpage);
+    upBox.getChildren().addAll(userpage, tx);
 
   }
 
@@ -293,35 +566,6 @@ public class Main extends Application {
 
     start(pstage);
 
-    // // Step 2: Allocate a 'Statement' object in the Connection
-    // Statement stmt;
-    // try {
-    // stmt = conn.createStatement();
-    // // Step 3: Execute a SQL SELECT query. The query result is returned in a
-    // // 'ResultSet' object.
-    // String strSelect = "select title, price, qty from books";
-    // System.out.println("The SQL statement is: " + strSelect + "\n"); // Echo For debugging
-    //
-    // ResultSet rset = stmt.executeQuery(strSelect);
-    //
-    // // Step 4: Process the ResultSet by scrolling the cursor forward via next().
-    // // For each row, retrieve the contents of the cells with getXxx(columnName).
-    // System.out.println("The records selected are:");
-    // int rowCount = 0;
-    // while (rset.next()) { // Move the cursor to the next row, return false if no more row
-    // String title = rset.getString("title");
-    // double price = rset.getDouble("price");
-    // int qty = rset.getInt("qty");
-    // System.out.println(title + ", " + price + ", " + qty);
-    // ++rowCount;
-    // }
-    // System.out.println("Total number of records = " + rowCount);
-    // } catch (SQLException e1) {
-    // // TODO Auto-generated catch block
-    // e1.printStackTrace();
-    // }
-
-
   }
 
   /**
@@ -344,6 +588,17 @@ public class Main extends Application {
     gridPane.add(textField, 0, 0);
     gridPane.add(search, 1, 0);
 
+
+
+    // add preliminary searchable examples
+    try {
+      storedProcedure_Prelim_Sort_menuType();
+    } catch (SQLException e1) {
+      e1.printStackTrace();
+    }
+
+
+
     middleBox.getChildren().add(gridPane);
 
   }
@@ -362,10 +617,14 @@ public class Main extends Application {
     rightBox = new VBox();
     // right part is for pie chart
     rightBox.setPrefWidth(500);
-    rightBox.setBackground(new Background(
-        (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new Insets(10)))));
-    ObservableList<PieChart.Data> pieChartData = FXCollections
-        .observableArrayList(new PieChart.Data("put searched value into this arrayList", 0));
+    // rightBox.setBackground(new Background(
+    // (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new Insets(10)))));
+    ObservableList<PieChart.Data> pieChartData = pieChart_Animal_Search("attributes"); // TODO: get
+                                                                                       // an input
+                                                                                       // of
+                                                                                       // attibute,
+                                                                                       // seperated
+                                                                                       // by comma
     PieChart chart = new PieChart(pieChartData);
 
     // button for the next page with view in detail
@@ -383,8 +642,8 @@ public class Main extends Application {
 
     // left part is for table
     leftBox.setPrefWidth(500);
-    leftBox.setBackground(new Background(
-        (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new Insets(10)))));
+    // leftBox.setBackground(new Background(
+    // (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new Insets(10)))));
     // add Button to go back to the menu page
     Button menu = new Button("menu");
     menu.setOnAction(e -> setMenuPage());
@@ -430,10 +689,11 @@ public class Main extends Application {
 
     leftBox.setPrefWidth(200);
     // set right side's background color
-    leftBox.setBackground(new Background(
-        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // leftBox.setBackground(new Background(
+    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
     // right side button of design
     Button viewAll = new Button("View All");
+    viewAll.setPrefSize(80, 40);
     // set on action of view History button
     viewAll.setOnAction(E -> setResultPage());
 
@@ -459,8 +719,8 @@ public class Main extends Application {
 
     rightBox.setPrefWidth(200);
     // set color
-    rightBox.setBackground(new Background(
-        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // rightBox.setBackground(new Background(
+    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
     // Adopt information page
     Button adopt = new Button("Adopt");
     adopt.setPrefSize(80, 40);
@@ -480,8 +740,8 @@ public class Main extends Application {
   private void set_FullAnimalRecordPage_MiddleBox() {
     middleBox = new VBox();
     // set color
-    middleBox.setBackground(new Background(
-        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // middleBox.setBackground(new Background(
+    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
     GridPane gp = new GridPane();
 
     // pet
@@ -534,16 +794,18 @@ public class Main extends Application {
   private void set_FullAnimalRecordPage_BottomBox() {
     bottomBox = new VBox();
     // set color
-    bottomBox.setBackground(new Background(
-        (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // bottomBox.setBackground(new Background(
+    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
     // button for previous page
     Button previous = new Button("prev");
+    previous.setPrefSize(80, 40);
     previous.setOnAction(e -> {
       // TODO connect to the previous page if not null
 
     });
     // button for next page
     Button next = new Button("next");
+    next.setPrefSize(80, 40);
     next.setOnAction(e -> {
       // TODO connect to the next page if not null
 
@@ -571,7 +833,7 @@ public class Main extends Application {
 
     // Button userHistory = new Button("userHistory");
     Text userHistory = new Text("userHistory");
-    userHistory.setFont(Font.font("Verdana", 17));
+    userHistory.setFont(Font.font("Copperplate", 17));
     // userHistory.setOnAction(e -> {
     // TODO self join of user's phone and name
 
@@ -610,7 +872,7 @@ public class Main extends Application {
 
     // });
     Text surrenderHistory = new Text("surrenderHistory");
-    surrenderHistory.setFont(Font.font("Verdana", 17));
+    surrenderHistory.setFont(Font.font("Copperplate", 17));
     TableView surrenderer = new TableView();
     TableColumn surPhone = new TableColumn("Surrenderer's phone");
     surPhone.setPrefWidth(150);
@@ -627,6 +889,7 @@ public class Main extends Application {
 
     // add Button to go back to the menu page
     Button menu = new Button("menu");
+    menu.setPrefSize(80, 40);
     menu.setOnAction(e -> setMenuPage());
     middleBox.getChildren().addAll(menu, gp);
   }
@@ -648,6 +911,7 @@ public class Main extends Application {
     rightBox = new VBox();
     // add Button to go back to the menu page
     Button menu = new Button("menu");
+    menu.setPrefSize(80, 40);
     menu.setOnAction(e -> setMenuPage());
     rightBox.getChildren().add(menu);
   }
@@ -669,7 +933,7 @@ public class Main extends Application {
 
     // TODO save data
     Button save = new Button("save");
-
+    save.setPrefSize(80, 40);
     // add these text and textfields to gridpane
     GridPane gridPane = new GridPane();
     // Setting size for the pane
@@ -741,6 +1005,7 @@ public class Main extends Application {
 
     // add Button to go back to the menu page
     Button menu = new Button("menu");
+    menu.setPrefSize(80, 40);
     menu.setOnAction(e -> setMenuPage());
     bottomBox.getChildren().add(menu);
     middleBox.getChildren().addAll(menu, address, ownerAddr);
