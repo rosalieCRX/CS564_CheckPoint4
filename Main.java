@@ -22,6 +22,7 @@ import java.util.Scanner;
 import java.util.Set;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -111,6 +112,9 @@ public class Main extends Application {
   private static String userType = "ADOPTER";
   private static int userID = 0;
   private static String menuType;
+  private static boolean newUser = false;
+
+  int change = 0;
 
   // ----------------------------------------SQL--------------------------------------------
   /**
@@ -138,8 +142,8 @@ public class Main extends Application {
 
     bc.setTitle("Shelter Summary");
     bc.setAnimated(true);
-    bc.setMaxSize(400, 400);
-    bc.setCategoryGap(40);
+    bc.setMaxSize(600, 600);
+    bc.setVerticalGridLinesVisible(false);
     xAxis.setLabel("Species");
     xAxis.setTickLabelRotation(40);
     yAxis.setLabel("Number");
@@ -217,7 +221,8 @@ public class Main extends Application {
 
     ResultSet total = myCallStmt.executeQuery();
     if (total.next()) {
-      results = "User ID: " + total.getInt("User_Id") + "\nName: " + total.getString("Name");
+      results =
+          "\n    User ID: " + total.getInt("User_Id") + "\n    Name: " + total.getString("Name");
     }
     return results;
   }
@@ -391,13 +396,13 @@ public class Main extends Application {
 
     // set a login button beside the userName
     Button adoptlogin = new Button("ADOPTER");
-    adoptlogin.setPrefSize(120, 40);
+    adoptlogin.setPrefSize(150, 40);
     Button surrenderlogin = new Button("SURRENDER");
-    surrenderlogin.setPrefSize(120, 40);
+    surrenderlogin.setPrefSize(150, 40);
     Button adminlogin = new Button("ADMIN");
-    adminlogin.setPrefSize(120, 40);
+    adminlogin.setPrefSize(150, 40);
     Button register = new Button("Register as a new User");
-    register.setPrefSize(120, 40);
+    register.setPrefSize(150, 40);
 
     // set up functionality
     adoptlogin.setOnAction(ActionEvent -> {
@@ -421,8 +426,9 @@ public class Main extends Application {
     register.setOnAction(ActionEvent -> {
       // set up the user type for future uses
       // Todo:.....new page
+      newUser = true;
+      newUserPage();
 
-      setMenuPage();
     });
 
     middleBox.getChildren().add(adoptlogin);
@@ -441,7 +447,7 @@ public class Main extends Application {
     middleBox = new VBox();
 
     Button back = new Button("Back");
-    back.setPrefSize(300, 40);
+    back.setPrefSize(70, 40);
     back.setOnAction(e -> {
       setBeginPage();
 
@@ -484,12 +490,19 @@ public class Main extends Application {
 
     set_MenuPage_MiddleBox();
     setMenuPage_upBox();
-   
+
 
   }
-  
+
   private void setMenuPage_upBox() {
-    upBox= new VBox();
+    upBox = new VBox();
+
+    Button back = new Button("Back");
+    back.setPrefSize(70, 40);
+    back.setOnAction(e -> {
+      setBeginPage();
+
+    });
     Text tx = null;
     try {
       tx = new Text(storedProcedure_Prelim_Sort_userType());
@@ -497,24 +510,29 @@ public class Main extends Application {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    
+
     leftBox = new VBox();
     rightBox = new VBox();
     leftBox.setPrefWidth(500);
     upBox.setPrefHeight(250);
 
-  
-    upBox.getChildren().add( tx);
+
+    upBox.getChildren().addAll(back, tx);
 
 
     start(pstage);
   }
 
   private void set_MenuPage_MiddleBox() {
+
     middleBox = new VBox();
+
     Button search = new Button("Start Searching Animal");
+    search.setPrefSize(150, 40);
     Button statistic = new Button("Statistic for Animals");
+    statistic.setPrefSize(150, 40);
     Button userAccount = new Button("User Account");
+    userAccount.setPrefSize(150, 40);
     search.setOnAction(e -> setPrelimSearchPage());
     statistic.setOnAction(e -> {
       // connect on statistic method
@@ -527,13 +545,95 @@ public class Main extends Application {
 
   private void setPrelimSearchPage() {
     clearPage();
+    set_PrelimSearchPage_middleBox();
 
-    set_PrelimSearchPage_leftBox();
-    set_PrelimSearchPage_rightBox();
-    set_PrelimSearchPage_rightBox();
     set_PrelimSearch_Page_upBox();
     start(pstage);
 
+  }
+
+  private void set_PrelimSearchPage_middleBox() {
+    middleBox = new VBox();
+
+    // new girdPane
+    GridPane gp = new GridPane();
+    gp.setMinSize(650, 350);
+    gp.setPadding(new Insets(10, 10, 10, 10));
+
+    Image dogCat = new Image(getClass().getResource("dog_cat.jpg").toString(), true);
+    ImageView dogCatImage = new ImageView(dogCat);
+
+    dogCatImage.setPickOnBounds(true); // allows click on transparent areas
+    dogCatImage.setOnMouseClicked((MouseEvent e) -> {
+      menuType = "dog_cat";
+      setSearchPage();
+    });
+
+    dogCatImage.setFitHeight(305 / 1.2);
+    dogCatImage.setFitWidth(542 / 1.2);
+
+    Text dc = new Text();
+    dc.setText("Click the image and search for cats and dogs!");
+    dc.setFont(Font.font("Copperplate", 20));
+
+    gp.add(dogCatImage, 0, 0);
+    gp.add(dc, 1, 0);
+
+    Image others = new Image(getClass().getResource("others.jpg").toString(), true);
+    ImageView othersImage = new ImageView(others);
+
+    othersImage.setFitHeight(300 / 1.2);
+    othersImage.setFitWidth(722 / 1.2);
+
+    othersImage.setPickOnBounds(true); // allows click on transparent areas
+    othersImage.setOnMouseClicked((MouseEvent e) -> {
+      menuType = "others";
+      setSearchPage();
+    });
+
+    Text ot = new Text();
+    ot.setText("Click the image and search for other pets!");
+    ot.setFont(Font.font("Copperplate", 20));
+
+    gp.add(othersImage, 0, 1);
+    gp.add(ot, 1, 1);
+
+    middleBox.getChildren().add(gp);
+  }
+
+  private void newUserPage() {
+    clearPage();
+
+    leftBox = new VBox();
+    leftBox.setPrefWidth(450);
+    upBox = new VBox();
+    upBox.setPrefHeight(300);
+    middleBox = new VBox();
+
+    Button back = new Button("Back");
+    back.setPrefSize(70, 40);
+    back.setOnAction(e -> {
+      setBeginPage();
+
+    });
+    upBox.getChildren().add(back);
+
+    Text pick = new Text("Click the Button Below to be an Adopter or a Surrender");
+    Button adopter = new Button("Adopter");
+    adopter.setPrefSize(70, 40);
+    adopter.setOnAction(e -> {
+      userType = "ADOPTER";
+      setUserAcountPage();
+    });
+    Button surrender = new Button("Surrender");
+    surrender.setPrefSize(90, 40);
+    surrender.setOnAction(e -> {
+      userType = "SURRENDER";
+      setUserAcountPage();
+    });
+    middleBox.getChildren().addAll(pick, adopter, surrender);
+
+    start(pstage);
   }
 
   private void setStatsPage() {
@@ -547,6 +647,9 @@ public class Main extends Application {
 
   private void set_StatsPage_middleBox() {
     middleBox = new VBox();
+    leftBox = new VBox();
+    leftBox.setPrefWidth(300);
+
     Text summary = new Text();
     try {
       summary.setText("\n\n\n" + storedProcedure_basicDebrief() + "\n\n\n");
@@ -570,50 +673,6 @@ public class Main extends Application {
 
     middleBox.resize(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 3);
     middleBox.getChildren().add(summary);
-  }
-
-  private void set_PrelimSearchPage_rightBox() {
-    rightBox = new VBox();
-
-    Image dogCat = new Image(getClass().getResource("dog_cat.jpg").toString(), true);
-    ImageView dogCatImage = new ImageView(dogCat);
-
-    dogCatImage.setPickOnBounds(true); // allows click on transparent areas
-    dogCatImage.setOnMouseClicked((MouseEvent e) -> {
-      menuType = "dog_cat";
-      setSearchPage();
-    });
-
-    dogCatImage.setFitHeight(305 / 1.2);
-    dogCatImage.setFitWidth(542 / 1.2);
-
-    Text dc = new Text();
-    dc.setText("Click the image and search for cats and dogs!");
-    dc.setFont(Font.font("Copperplate", 20));
-
-    rightBox.getChildren().addAll(dogCatImage, dc);
-
-  }
-
-  private void set_PrelimSearchPage_leftBox() {
-    leftBox = new VBox();
-    Image others = new Image(getClass().getResource("others.jpg").toString(), true);
-    ImageView othersImage = new ImageView(others);
-
-    othersImage.setFitHeight(300 / 1.2);
-    othersImage.setFitWidth(722 / 1.2);
-
-    othersImage.setPickOnBounds(true); // allows click on transparent areas
-    othersImage.setOnMouseClicked((MouseEvent e) -> {
-      menuType = "others";
-      setSearchPage();
-    });
-
-    Text ot = new Text();
-    ot.setText("Click the image and search for other pets!");
-    ot.setFont(Font.font("Copperplate", 20));
-
-    leftBox.getChildren().addAll(othersImage, ot);
   }
 
 
@@ -650,11 +709,10 @@ public class Main extends Application {
     leftBox = new VBox();
     rightBox = new VBox();
     upBox = new VBox();
-    leftBox.setPrefWidth(400);
+    leftBox.setPrefWidth(250);
     rightBox.setPrefWidth(400);
     // upBox.setPrefHeight(300);
-    // middleBox
-    set_SearchPage_middleBox();
+
 
     start(pstage);
 
@@ -675,34 +733,50 @@ public class Main extends Application {
 
     // combine
     GridPane gridPane = new GridPane();
-    gridPane.setMinSize(500, 500);
+    gridPane.setMinSize(650, 100);
     gridPane.setPadding(new Insets(10, 10, 10, 10));
     gridPane.add(textField, 0, 0);
     gridPane.add(search, 1, 0);
 
     VBox vb = new VBox();
-    TableView tb = new TableView();
-    TableColumn animalID = new TableColumn("Animal ID");
+    TableView<List<String>> tb = new TableView<List<String>>();
+    TableColumn<List<String>, String> animalID = new TableColumn("Animal ID");
     animalID.setPrefWidth(100);
-    TableColumn animalName = new TableColumn("Animal Name");
+    TableColumn<List<String>, String> animalName = new TableColumn("Animal Name");
     animalName.setPrefWidth(100);
-    TableColumn sex = new TableColumn("Sex of the Animal");
-    sex.setPrefWidth(100);
-    TableColumn date = new TableColumn("Date of Birth");
+    TableColumn<List<String>, String> sex = new TableColumn("Sex of the Animal");
+    sex.setPrefWidth(150);
+    TableColumn<List<String>, String> date = new TableColumn("Date of Birth");
     date.setPrefWidth(100);
-    TableColumn outcome = new TableColumn("a Outcome Type");
+    TableColumn<List<String>, String> outcome = new TableColumn("Outcome Type");
     outcome.setPrefWidth(100);
-    TableColumn breed = new TableColumn("Breed Name");
+    TableColumn<List<String>, String> breed = new TableColumn("Breed Name");
     breed.setPrefWidth(100);
     tb.getColumns().addAll(animalID, animalName, sex, date, outcome, breed);
     vb.getChildren().addAll(tb);
-    // add preliminary searchable examples
-    try {
-      storedProcedure_Prelim_Sort_menuType();
-    } catch (SQLException e1) {
-      e1.printStackTrace();
-    }
 
+    // add preliminary searchable examples
+    // try {
+    // ResultSet rs= storedProcedure_Prelim_Sort_menuType();
+    // while (rs.next()) {
+    // animalID.setCellValueFactory(
+    // data -> {
+    // List<String> rowValues = data.getValue();
+    // String cellValue ;
+    // cellValue = rowValues.get(colIndex);
+    // } else {
+    // cellValue = "" ;
+    // }
+    // return new ReadOnlyStringWrapper(cellValue);});
+    //
+    // }
+    // }catch(
+    //
+    // SQLException e1)
+    // {
+    // e1.printStackTrace();
+    // }
+    //
     middleBox.getChildren().addAll(gridPane, vb);
 
   }
@@ -1020,28 +1094,31 @@ public class Main extends Application {
     upBox.getChildren().add(menu);
   }
 
+
+
   private void set_UserAcountPage_middleBox() {
-    upBox = new VBox();
-    Label label = new Label("User Account");
+    middleBox = new VBox();
+
     // TODO user could change his or her user name
     Text userName = new Text("userName");
     TextField name = new TextField();
 
-    // TODO user could change his or her phone number
+    // user could change his or her phone number
     Text phone = new Text("phone");
     TextField phoneNumber = new TextField();
 
-    // TODO user could change his or her address
+    // user could change his or her address
     Text address = new Text("address");
     TextField addr = new TextField();
 
-    // TODO save data
+    // save data
     Button save = new Button("save");
     save.setPrefSize(80, 40);
+
     // add these text and textfields to gridpane
     GridPane gridPane = new GridPane();
     // Setting size for the pane
-    gridPane.setMinSize(400, 200);
+    gridPane.setMinSize(450, 250);
 
     // Setting the padding
     gridPane.setPadding(new Insets(10, 10, 10, 10));
@@ -1060,7 +1137,27 @@ public class Main extends Application {
     gridPane.add(phoneNumber, 1, 1);
     gridPane.add(address, 0, 2);
     gridPane.add(addr, 1, 2);
-    gridPane.add(save, 4, 4);
+    gridPane.add(save, 5, 5);
+
+    // adopter's two buttons
+    if (userType.equals("ADOPTER")) {
+      Text rating = new Text("self rating");
+      TextField rate = new TextField();
+      Text petNum = new Text("owning pets number");
+      TextField pet = new TextField();
+      gridPane.add(rating, 0, 3);
+      gridPane.add(rate, 1, 3);
+      gridPane.add(petNum, 0, 4);
+      gridPane.add(pet, 1, 4);
+
+
+    } else if (userType.equals("SURRENDER")) {
+      Text note = new Text("note for the adopter");
+      TextField noteAdopt = new TextField();
+      gridPane.add(note, 0, 3);
+      gridPane.add(noteAdopt, 1, 3);
+    }
+
 
 
     middleBox.getChildren().addAll(gridPane);
