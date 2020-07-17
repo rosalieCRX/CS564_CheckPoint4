@@ -254,31 +254,39 @@ public class Main extends Application {
   }
 
 
-
-  private ResultSet animal_Search(String attributes) {
-
+/**
+ * get result based on search conditions
+ * @param stringAttributes
+ * @return
+ */
+  private ArrayList<ArrayList<String>> animal_Search(String stringAttributes, int intAttribute) {
+ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     try {
       String query;
       if (menuType.equals("dog_cat")) {
 
         query =
-            "SELECT " + attributes + " FROM Animal " + " WHERE breed_Name IN (select breed_name "
+            "SELECT " + stringAttributes + " FROM Animal " + " WHERE breed_Name IN (select breed_name "
                 + "From Classification " + "where species_name = 'Dog' or species_name = 'Cat'));";
       } else {
         query =
-            "SELECT " + attributes + " FROM Animal " + " WHERE breed_Name IN (select breed_name "
+            "SELECT " + stringAttributes + " FROM Animal " + " WHERE breed_Name IN (select breed_name "
                 + "From Classification" + "where NOT(species_name = 'Dog' or species_name = 'Cat'));";
       }
 
       ResultSet rs = stmt.executeQuery(query);
       while (rs.next()) {
-
+        ArrayList<String> row = new ArrayList<String>();
+        for(int i=0;i<rs.getMetaData().getColumnCount();i++) {
+          row.add(rs.getString(i));
+        }
+        result.add(row);
       }
     } catch (Exception e) {
       System.out.println("Error on DB connection");
 
     }
-    return null;
+    return result;
   }
 
   /**
