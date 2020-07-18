@@ -305,8 +305,7 @@ public class Main extends Application {
   }
 
   /**
-   * present results based on whehter the user selected 
- or others to start searching
+   * present results based on whehter the user selected or others to start searching
    * 
    * @return
    * @throws SQLException
@@ -359,6 +358,27 @@ public class Main extends Application {
     return results;
   }
 
+
+
+  private String get_Animal_Temperament(int Animal_ID) throws SQLException {
+    String Animal_attribute = null;
+    String location = null;
+    int Temperatment = 0;
+    String breed = null;
+    query = "Select t.Is_loving, t.Is_calm, t.Is_shy " + "From Animal a, Temperament t "
+        + "Where a.Animal_ID =" + Animal_ID
+        + " and a.Temp_Combination_Number= t.Temp_Combination_Number;";
+    ResultSet rs = stmt.executeQuery(query);
+
+    String result = "";
+    if (rs.next()) {
+      result += "Is_loving: " + (rs.getInt(1) == 1 ? "YES\n" : "NO\n") + "Is_calm: "
+          + (rs.getInt(2) == 1 ? "YES\n" : "NO\n") + "Is_shy : "
+          + (rs.getInt(3) == 1 ? "YES\n" : "NO\n");
+    }
+    return result;
+  }
+
   /**
    * get result based on search conditions
    * 
@@ -369,71 +389,61 @@ public class Main extends Application {
       String Outcome_type, String Sex, String groupby, String location) {
     // ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>()
     String attr = "";
-    if(Classification_Breed_Name!=null) {
-      attr+="Classification_Breed_Name='"+Classification_Breed_Name+"'";
+    if (Classification_Breed_Name.length()!=0&&Classification_Breed_Name != null) {
+      attr += "Classification_Breed_Name='" + Classification_Breed_Name + "'";
     }
-    if(Base_Color!=null) {
-      if(attr.length()>0) {
-        attr+=" && Base_Color='"+Base_Color+"'";
-      }
-      else {
-        attr+="Base_Color='"+Base_Color+"'";
-      }
-    }
-    if(Base_Color!=null) {
-      if(attr.length()>0) {
-        attr+=" && Outcome_type='"+Outcome_type+"'";
-      }
-      else {
-        attr+="Outcome_type='"+Outcome_type+"'";
+    if (Base_Color .length()!=0&&Base_Color != null) {
+      if (attr.length() > 0) {
+        attr += " AND Base_Color='" + Base_Color + "'";
+      } else {
+        attr += "Base_Color='" + Base_Color + "'";
       }
     }
-    if(Base_Color!=null) {
-      if(attr.length()>0) {
-        attr+=" && Base_Color='"+Base_Color+"'";
-      }
-      else {
-        attr+="Base_Color='"+Base_Color+"'";
-      }
-    }
-    if(Base_Color!=null) {
-      if(attr.length()>0) {
-        attr+=" && Sex='"+Sex+"'";
-      }
-      else {
-        attr+="Sex='"+Sex+"'";
+    if (Outcome_type.length()!=0&&Outcome_type != null) {
+      if (attr.length() > 0) {
+        attr += " AND Outcome_type='" + Outcome_type + "'";
+      } else {
+        attr += "Outcome_type='" + Outcome_type + "'";
       }
     }
-    if(attr.length()>0) {
-      attr+=";";
+    if (Sex.length()!=0&&Sex != null) {
+      if (attr.length() > 0) {
+        attr += " AND Sex='" + Sex + "'";
+      } else {
+        attr += "Sex='" + Sex + "'";
+      }
     }
-    
-    
-    
+    if (attr.length() > 0) {
+      attr += ";";
+    }
+
+    String loc = "";
+    if (location.length()!=0&&location != null) {
+      loc = "Animal_ID in (select At_Animal_Animal_ID from At where Location_Found_Address = '"
+          + location + "' and";
+    }
+
     try {
       String query;
+
       if (menuType.equals("dog_cat")) {
-        if(attr.length()>0) {
-        query = "SELECT * " 
-            + " FROM Animal "
-            + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification "
-            + "where Specis_Name = 'Dog' or Specis_Namee = 'Cat'))"
-            + "and "+attr+";";}
-        else {
-          query = "SELECT * " 
-              + " FROM Animal "
-              + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification "
-              + "where Specis_Name = 'Dog' or Specis_Namee = 'Cat');";
+        if (attr.length() > 0) {
+          query = "SELECT * " + " FROM Animal " + " WHERE " + loc
+              + " Classification_Breed_Name IN (select Breed_Name " + "From Classification "
+              + "where Specis_Name = 'Dog' or Specis_Name = 'Cat')" + "and " + attr;
+        } else {
+          query = "SELECT * " + " FROM Animal " + " WHERE " + loc
+              + "Classification_Breed_Name IN (select Breed_Name " + "From Classification "
+              + "where Specis_Name = 'Dog' or Specis_Name = 'Cat');";
         }
       } else {
-        if(attr.length()>0) {
-        query = "SELECT *  FROM Animal "
-            + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification"
-            + "where NOT(Specis_Name = 'Dog' or Specis_Name = 'Cat')) "
-            + "and "+attr+";";}
-        else {
-          query = "SELECT *  FROM Animal "
-              + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification"
+        if (attr.length() > 0) {
+          query = "SELECT *  FROM Animal " + " WHERE " + loc
+              + "Classification_Breed_Name IN (select Breed_Name " + "From Classification"
+              + "where NOT(Specis_Name = 'Dog' or Specis_Name = 'Cat')) " + "and " + attr;
+        } else {
+          query = "SELECT *  FROM Animal " + " WHERE " + loc
+              + "Classification_Breed_Name IN (select Breed_Name " + "From Classification"
               + "where NOT(Specis_Name = 'Dog' or Specis_Name = 'Cat')); ";
         }
       }
@@ -459,7 +469,8 @@ public class Main extends Application {
   private String storedProcedure_search_move_Date_and_history(int ID) throws SQLException {
     String results = "";
     CallableStatement myCallStmt = conn.prepareCall("call " + "search_move_Date_and_history(?)");
-
+    myCallStmt.setInt(1,ID);
+    
     ResultSet rs = myCallStmt.executeQuery();
     if (rs.next())
       results = "Take_in_Date: " + rs.getString(1) + "\nIntake_Type: " + rs.getString(2)
@@ -662,8 +673,8 @@ public class Main extends Application {
     back.setFont(new Font("Copperplate", 20));
     back.setPrefSize(150, 40);
     back.setOnAction(e -> {
-      //if(userType.equals("ADMIN"))
-      setMenuPage();      
+      // if(userType.equals("ADMIN"))
+      setMenuPage();
 
     });
     upBox.getChildren().add(back);
@@ -713,7 +724,7 @@ public class Main extends Application {
         add_Animal(animalName.getText(), breedName.getText(), baseColor.getText(),
             outcomeType.getText(), gender.getText(), Integer.parseInt(tempNum.getText()),
             birthday.getText());
-       // setUserAcountPage();
+        // setUserAcountPage();
       } catch (SQLException e1) {
         // TODO Auto-generated catch block
         e1.printStackTrace();
@@ -733,23 +744,23 @@ public class Main extends Application {
     removeAnimal.setOnAction(e -> {
       try {
         remove_Animal(Integer.parseInt(animalId.getText()));
-      //  if (userType.equals("ADMIN"))
-     //     setMenuPage();
-     //   else
-     //     setUserAcountPage();
+        // if (userType.equals("ADMIN"))
+        // setMenuPage();
+        // else
+        // setUserAcountPage();
       } catch (SQLException e1) {
         // TODO Auto-generated catch block
         e1.printStackTrace();
       }
     });
 
-   // Button next = new Button("next");
-  //  next.setFont(Font.font("Copperplate", 20));
- //   next.setPrefSize(100, 40);
-  //  next.setOnAction(e -> {
-   //   setUserAcountPage();
+    // Button next = new Button("next");
+    // next.setFont(Font.font("Copperplate", 20));
+    // next.setPrefSize(100, 40);
+    // next.setOnAction(e -> {
+    // setUserAcountPage();
 
-   // });
+    // });
 
 
     gp.add(name, 0, 0);
@@ -772,7 +783,7 @@ public class Main extends Application {
     gp.add(animalId, 1, 8);
     gp.add(removeAnimal, 3, 9);
 
-    //gp.add(next, 4, 11);
+    // gp.add(next, 4, 11);
 
 
     middleBox.getChildren().addAll(gp);
@@ -1045,7 +1056,7 @@ public class Main extends Application {
 
     // middleBox
     set_SearchPage_middleBox();
-    
+
 
     leftBox = new VBox();
     rightBox = new VBox();
@@ -1053,13 +1064,13 @@ public class Main extends Application {
     leftBox.setPrefWidth(250);
     rightBox.setPrefWidth(400);
     // upBox.setPrefHeight(300);
-    
+
     set_SearchPage_upBox();
 
     start(pstage);
 
   }
-  
+
   private void set_SearchPage_upBox() {
     upBox = new VBox();
     Button back = new Button("Back");
@@ -1078,23 +1089,23 @@ public class Main extends Application {
   private void set_SearchPage_middleBox() {
     middleBox = new VBox();
     // set input for search
-    //TextField textField = new TextField();
-   // textField.setPrefSize(200, 10);
+    // TextField textField = new TextField();
+    // textField.setPrefSize(200, 10);
 
 
     // TODO search animal attributes
-    //Text ID = new Text("Animal ID");
-    //ID.setFont(new Font("Copperplate", 20));
-    //TextField animalID = new TextField();
-    
+    // Text ID = new Text("Animal ID");
+    // ID.setFont(new Font("Copperplate", 20));
+    // TextField animalID = new TextField();
+
     Text name = new Text("Animal Name");
     name.setFont(new Font("Copperplate", 20));
     TextField animalName = new TextField();
-    
+
     Text breedNam = new Text("Breed");
     breedNam.setFont(new Font("Copperplate", 20));
     TextField breedName = new TextField();
-    
+
     Text color = new Text("Color");
     color.setFont(new Font("Copperplate", 20));
     TextField baseColor = new TextField();
@@ -1114,14 +1125,14 @@ public class Main extends Application {
     Text birth = new Text("Date of Birth");
     birth.setFont(new Font("Copperplate", 20));
     TextField birthday = new TextField();
-       
+
     Text speicies = new Text("Animal Species");
     speicies.setFont(new Font("Copperplate", 20));
     TextField animalSpec = new TextField();
-    
+
     Text loc = new Text("Location");
     loc.setFont(new Font("Copperplate", 20));
-    TextField animalLoc= new TextField();
+    TextField animalLoc = new TextField();
 
 
     // textField
@@ -1129,13 +1140,10 @@ public class Main extends Application {
     Button search = new Button("search");
     search.setFont(new Font("Copperplate", 20));
     search.setPrefSize(200, 40);
-    search.setOnAction(e -> setResultPage(null));
-    
     search.setOnAction(e -> {
-      setResultPage(  animal_Search(breedName.getText(), baseColor.getText(),
-          outcomeType.getText(), gender.getText(),
-           null, animalLoc.getText()));
-     
+      setResultPage(breedName.getText(), baseColor.getText(), outcomeType.getText(),
+          gender.getText(), null, animalLoc.getText());
+
     });
 
     // combine
@@ -1219,7 +1227,7 @@ public class Main extends Application {
       e1.printStackTrace();
     }
 
-    tb.setItems(data);;
+    tb.setItems(data);
     tb.setOnMouseClicked((MouseEvent e) -> {
       int index = tb.getSelectionModel().selectedIndexProperty().get();
       row = tb.getItems().get(index);// .selectionModelProperty().
@@ -1231,23 +1239,7 @@ public class Main extends Application {
 
     vb.getChildren().addAll(tb);
 
-    // ------
-    String Animal_attribute = null;
-    String location = null;
-    int Temperatment = 0;
-    String breed = null;
-    query = "Select * " + "From "
-        + ((Temperatment == 0) ? "Animal a" : "(Animal a inner join Temperatment t)")
-        + ((breed == null) ? "" : "inner join Classification c") + " " + "Where "
-        + ((Temperatment == 0) ? "not (a.Animal_ID =0)"
-            : "(a.Temp_Combination_Number=" + Temperatment + ")")
-        + " and "
-        + ((breed == null) ? "not (a.Animal_ID =0)"
-            : "(a.Classification_Breed_Name=" + Temperatment + ")")
-        + " AND "
-        + ((location == null) ? "not (a.Animal_ID =0);"
-            : "a.Animal_ID in (select At_Animal_Animal_ID from At where Location_Found_Address='"
-                + location + "');");
+
 
     middleBox.getChildren().addAll(gridPane, vb);
 
@@ -1255,20 +1247,37 @@ public class Main extends Application {
 
   /**
    * set up canvas
-   * @param rs 
+   * 
+   * @param string4
+   * @param string3
+   * @param string2
+   * @param string
+   * 
+   * @param rs
+   * @param string5
+   * @param string4
+   * @param object
+   * 
+   * 
+   * 
+   *                setResultPage(breedName.getText(), baseColor.getText(), outcomeType.getText(),
+   *                gender.getText(),GROUPBY string, animalLoc.getText());
+   * 
    */
-  private void setResultPage(ResultSet rs) {
+  private void setResultPage(String string, String string2, String string3, String string5,
+      String groupby, String string4) {
     clearPage();
-    set_ResultPage_LeftBox(rs);
-    set_ResultPage_RightBox(rs);
+    set_ResultPage_LeftBox(string, string2, string3, string5, null, string4);
+    set_ResultPage_RightBox(string, string2, string3, string5, groupby, string4);
     start(pstage);
   }
 
-  private void set_ResultPage_RightBox(ResultSet rs) {
+  private void set_ResultPage_RightBox(String string, String string2, String string3,
+      String string5, String groupbynull, String string4) {
     rightBox = new VBox();
     // right part is for pie chart
     rightBox.setPrefWidth(500);
-    
+
     GridPane gridPane = new GridPane();
     // Setting size for the pane
     gridPane.setMinSize(450, 250);
@@ -1279,39 +1288,39 @@ public class Main extends Application {
     // Setting the vertical and horizontal gaps between the columns
     gridPane.setVgap(5);
     gridPane.setHgap(5);
-    
+
     Text group = new Text("Group by");
-    TextField groupby =  new TextField();
-    
- // Arranging all the nodes in the grid
+    TextField groupby = new TextField();
+
+    // Arranging all the nodes in the grid
     gridPane.add(group, 0, 0);
     gridPane.add(groupby, 0, 1);
     // rightBox.setBackground(new Background(
     // (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new
     // Insets(10)))));
-    ObservableList<PieChart.Data> pieChartData =
-        pieChart_Animal_Search(animal_Search(null, null, null, null, null, null, query, query)); // TODO: get
-                                                                                       // an input
-                                                                                       // of
-                                                                                       // attibute,
-                                                                                       // seperated
-                                                                                       // by comma
+    ObservableList<PieChart.Data> pieChartData = pieChart_Animal_Search(
+        animal_Search(string, string2, string3, string5, groupby.getText(), string4)); 
+    
+    
     PieChart chart = new PieChart(pieChartData);
 
     // button for the next page with view in detail
     Button view = new Button("view");
     view.setFont(new Font("Copperplate", 20));
     view.setPrefSize(100, 40);
-    view.setOnAction(e -> setFullAnimalRecordPage(null));
+    view.setOnAction(e -> setSearchPage());
 
     rightBox.getChildren().addAll(chart, view);
   }
 
   /**
    * set up the bottom box
-   * @param rs 
+   * 
+   * @param rs
    */
-  private void set_ResultPage_LeftBox(ResultSet rs) {
+  private void set_ResultPage_LeftBox(String string, String string2, String string3, String string5,
+      String groupby, String string4) {
+
     leftBox = new VBox();
 
     // left part is for table
@@ -1337,7 +1346,7 @@ public class Main extends Application {
     ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
 
     try {
-
+      ResultSet rs = animal_Search(string, string2, string3, string5, null, string4);
       for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
         // We are using non property style for making dynamic table
         final int j = i;
@@ -1366,6 +1375,16 @@ public class Main extends Application {
         data.add(row);
 
       }
+      
+
+      table.setItems(data);
+      table.setOnMouseClicked((MouseEvent e) -> {
+        int index = table.getSelectionModel().selectedIndexProperty().get();
+        row =table.getItems().get(index);// .selectionModelProperty().
+        setFullAnimalRecordPage(row);
+
+      });
+      
     } catch (
 
     SQLException e1) {
@@ -1413,7 +1432,7 @@ public class Main extends Application {
     viewAll.setPrefSize(80, 40);
     viewAll.setFont(new Font("Copperplate", 20));
     // set on action of view History button
-    viewAll.setOnAction(E -> setResultPage(null));
+    viewAll.setOnAction(E -> setSearchPage());
 
     // add in date
     // not so sure if this should be a button
@@ -1463,6 +1482,29 @@ public class Main extends Application {
    */
   private void set_FullAnimalRecordPage_MiddleBox(ObservableList<String> list) {
     middleBox = new VBox();
+    
+    
+   //GET SPECIES NAME
+   String species_Name=null;
+   int index =5;
+   if(list.size()==8) {
+     index =2;
+   }
+   try {
+     String query = "Select Specis_Name "
+         + "from Classification "
+         + "where Breed_Name  ='"+list.get(index)+"';";
+    ResultSet rs1=  stmt.executeQuery(query);
+    if(rs1.next())
+    species_Name = rs1.getString(1);
+    
+  } catch (SQLException e2) {
+    // TODO Auto-generated catch block
+    e2.printStackTrace();
+  }
+   
+   
+   
     // set color
     // middleBox.setBackground(new Background(
     // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new
@@ -1470,101 +1512,133 @@ public class Main extends Application {
     GridPane gp = new GridPane();
     ScrollPane sp = new ScrollPane();
     sp.setContent(gp);// TODO: set scrolling
-    
-   
+
+
     // pet
-    Image cat0 = new Image(getClass().getResource("Cat_0.png").toString(), true);
+    Image cat0 = new Image(getClass().getResource("Cat_0.jpg").toString(), true);
     ImageView cat0Image = new ImageView(cat0);
-    
-    Image cat1 = new Image(getClass().getResource("Cat_1.png").toString(), true);
+
+    Image cat1 = new Image(getClass().getResource("Cat_1.jpg").toString(), true);
     ImageView cat1Image = new ImageView(cat1);
-    
-    Image dog0 = new Image(getClass().getResource("Dog_0.png").toString(), true);
+
+    Image dog0 = new Image(getClass().getResource("Dog_0.jpg").toString(), true);
     ImageView dog0Image = new ImageView(dog0);
-    
-    Image dog1 = new Image(getClass().getResource("Dog_1.png").toString(), true);
+
+    Image dog1 = new Image(getClass().getResource("Dog_1.jpg").toString(), true);
     ImageView dog1Image = new ImageView(dog1);
-    
-    Image bird0 = new Image(getClass().getResource("Bird_0.png").toString(), true);
+
+    Image bird0 = new Image(getClass().getResource("Bird_0.jpg").toString(), true);
     ImageView bird0Image = new ImageView(bird0);
-    
+
     Image bird1 = new Image(getClass().getResource("Bird_1.png").toString(), true);
     ImageView bird1Image = new ImageView(bird1);
-    
-    Image livestock0 = new Image(getClass().getResource("Livestock_0.png").toString(), true);
+
+    Image livestock0 = new Image(getClass().getResource("Livestock_0.jpg").toString(), true);
     ImageView livestock0Image = new ImageView(livestock0);
-    
-    Image livestock1 = new Image(getClass().getResource("Livestock_1.png").toString(), true);
+
+    Image livestock1 = new Image(getClass().getResource("Livestock_1.jpg").toString(), true);
     ImageView livestock1Image = new ImageView(livestock1);
     
+    Image other0 = new Image(getClass().getResource("Other_0.jpg").toString(), true);
+    ImageView other0Image = new ImageView(other0);
+
+    Image other1 = new Image(getClass().getResource("Other_1.jpg").toString(), true);
+    ImageView other1Image = new ImageView(other1);
+
     ImageView randImage = null;
-    
-  //get speices name
-    if(list.get(0).equals("Cat")) {
-      //get this animal ID
+
+    // get speices name
+    if (species_Name.equals("Cat")) {
+      // get this animal ID
       // if this ID is an even number
-      if(Integer.parseInt(list.get(1))/2 == 0) {
+      if (Integer.parseInt(list.get(0)) % 2 == 0) {
         randImage = cat0Image;
       } else {
-        //it is an odd number
+        // it is an odd number
         randImage = cat1Image;
       }
-    }
-    else if(list.get(0).equals("Dog")) {
-      //get this animal ID
+    } else if (species_Name.equals("Dog")) {
+      // get this animal ID
       // if this ID is an even number
-      if(Integer.parseInt(list.get(1))/2 == 0) {
+      if (Integer.parseInt(list.get(0)) % 2 == 0) {
         randImage = dog0Image;
       } else {
-        //it is an odd number
+        // it is an odd number
         randImage = dog1Image;
       }
-    }
-    else if(list.get(0).equals("Bird")) {
-      //get this animal ID
+      
+    } 
+    else if (species_Name.equals("Other")) {
+      // get this animal ID
       // if this ID is an even number
-      if(Integer.parseInt(list.get(1))/2 == 0) {
+      if (Integer.parseInt(list.get(0)) % 2 == 0) {
+        randImage = other0Image;
+      } else {
+        // it is an odd number
+        randImage = other1Image;
+      }
+      
+    }
+    else if (species_Name.equals("Bird")) {
+      // get this animal ID
+      // if this ID is an even number
+      if (Integer.parseInt(list.get(0)) % 2 == 0) {
         randImage = bird0Image;
       } else {
-        //it is an odd number
+        // it is an odd number
         randImage = bird1Image;
       }
-    }
-    else if(list.get(0).equals("Livestock")) {
-      //get this animal ID
+    } else if (species_Name.equals("Livestock")) {
+      // get this animal ID
       // if this ID is an even number
-      if(Integer.parseInt(list.get(1))/2 == 0) {
+      if (Integer.parseInt(list.get(0)) % 2 == 0) {
         randImage = livestock0Image;
       } else {
-        //it is an odd number
+        // it is an odd number
         randImage = livestock1Image;
       }
     }
-    
-    
+
+
 
     Text tx = new Text();
-    String record = "";
-    for (int i = 0; i < list.size(); i++) {
-      record += list.get(i);
+
+//TODO: format output & change font
+    try {
+
+      String record = "";
+      for (int i = 0; i < list.size(); i++) {
+        record += list.get(i) + "\t";
+      }
+
+      record += get_Animal_Temperament(Integer.parseInt(list.get(0)));
+      record += "\n";
+      record += storedProcedure_search_move_Date_and_history(Integer.parseInt(list.get(0)));
+
+      tx.setText(record);
+    } catch (NumberFormatException e1) {
+
+      e1.printStackTrace();
+    } catch (SQLException e1) {
+
+      e1.printStackTrace();
     }
-    tx.setText(record);
 
-    Button previous = new Button("prev");
-    previous.setFont(new Font("Copperplate", 20));
-    previous.setPrefSize(100, 40);
-    previous.setOnAction(e -> {
-      // TODO connect to the previous page if not null
-
-    });
-    // button for next page
-    Button next = new Button("next");
-    next.setFont(new Font("Copperplate", 20));
-    next.setPrefSize(100, 40);
-    next.setOnAction(e -> {
-      // TODO connect to the next page if not null
-
-    });
+//    Button previous = new Button("prev");
+//    previous.setFont(new Font("Copperplate", 20));
+//    previous.setPrefSize(100, 40);
+//    previous.setOnAction(e -> {
+//      // TODO connect to the previous page if not null
+//
+//    });
+//    // button for next page
+//    Button next = new Button("next");
+//    next.setFont(new Font("Copperplate", 20));
+//    next.setPrefSize(100, 40);
+//    next.setOnAction(e -> {
+//      // TODO connect to the next page if not null
+//
+//    });
 
     // TableColumn adopters = new TableColumn("recent adopter");
     // adopters.setPrefWidth(100);
@@ -1590,8 +1664,8 @@ public class Main extends Application {
     // Arranging all the nodes in the grid
     gp.add(randImage, 0, 1);
     gp.add(tx, 1, 1);
-    gp.add(previous, 0, 5);
-    gp.add(next, 1, 5);
+//    gp.add(previous, 0, 5);
+//    gp.add(next, 1, 5);
 
     //
     VBox vbox = new VBox();
