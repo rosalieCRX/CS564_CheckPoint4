@@ -163,7 +163,6 @@ public class Main extends Application {
     xAxis.setTickLabelRotation(40);
     yAxis.setLabel("Number");
 
-
     try {
       while (rs.next()) {
         String item = rs.getString(1);
@@ -194,13 +193,13 @@ public class Main extends Application {
 
   }
 
-  private void add_Animal(int Animal_ID, String Animal_Name, String Classification_Breed_Name,
-      String Base_Color, String Outcome_type, String Sex, int Temp_Combination_Number,
-      String Date_of_Birth) throws SQLException {
+  private void add_Animal(String Animal_Name, String Classification_Breed_Name, String Base_Color,
+      String Outcome_type, String Sex, int Temp_Combination_Number, String Date_of_Birth)
+      throws SQLException {
     // query for grouping animal
     String query =
         "INSERT INTO Animal (Animal_ID,Animal_Name,Classification_Breed_Name,Base_Color,  Outcome_type, Sex,  Temp_Combination_Number, Date_of_Birth) VALUES ('"
-            + Animal_ID + "','" + Animal_Name + "','" + Classification_Breed_Name + "','"
+            + nextAnimalID + "','" + Animal_Name + "','" + Classification_Breed_Name + "','"
             + Base_Color + "','" + Outcome_type + "','" + Sex + "','" + Temp_Combination_Number
             + "','" + Date_of_Birth + "');";
     stmt.executeQuery(query);
@@ -236,6 +235,26 @@ public class Main extends Application {
     nextUserID++;
   }
 
+
+  private void alter_User(int ID, String Name, String Phone, String Address,
+      String Notes_and_Criteria_for_adoption, float Overall_Neighbor_Rating,
+      int Total_Number_of_Pets_up_to_now) throws SQLException {
+    String query = "update All_Users " + "set Name = '" + Name + "','" + "Phone='" + Phone + "','"
+        + "Address='" + Address + "','" + "Where User_ID = " + ID + ";";
+    stmt.executeQuery(query);
+
+    if (userType.equals("SURRENDER")) {
+      query = "update Surrender_Owner " + "set Notes_and_Criteria_for_adoption = '"
+          + Notes_and_Criteria_for_adoption + "' " + "Where User_ID = " + ID + ";";
+    } else if (userType.equals("ADOPTOR")) {
+
+      query = "update Potential_Adopter " + "set Overall_Neighbor_Rating = "
+          + Overall_Neighbor_Rating + "," + "Total_Number_of_Pets_up_to_now='"
+          + Total_Number_of_Pets_up_to_now + "Where A_User_ID = " + ID + ";";
+    }
+  }
+
+  // TODO
   private void remove_User(int ID) throws SQLException {
     if (userType.equals("ADMIN")) {
       // query for grouping animal
@@ -243,7 +262,6 @@ public class Main extends Application {
       stmt.executeQuery(query);
     }
   }
-
 
   private String link_account(String Name, String Phone) throws SQLException {
     String query = "Select u1.UserID,u2.UserID " + "From All_Users u1, All_Users u2 "
@@ -257,10 +275,7 @@ public class Main extends Application {
 
   }
 
-
-
   private String connectUserInfo(int AdoptorId, int SurrID) throws SQLException {
-
 
     String results = "";
     CallableStatement myCallStmt = conn.prepareCall("call " + "connectUserInfo(?,?)");
@@ -289,9 +304,9 @@ public class Main extends Application {
     return results;
   }
 
-
   /**
-   * present results based on whehter the user selected dog_cat or others to start searching
+   * present results based on whehter the user selected 
+ or others to start searching
    * 
    * @return
    * @throws SQLException
@@ -309,7 +324,6 @@ public class Main extends Application {
     }
     return results;
   }
-
 
   /**
    * present results based on whehter the user selected dog_cat or others to start searching
@@ -345,26 +359,83 @@ public class Main extends Application {
     return results;
   }
 
-
   /**
    * get result based on search conditions
    * 
    * @param stringAttributes
    * @return
    */
-  private ResultSet animal_Search(String stringAttributes, int intAttribute) {
-    // ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
+  private ResultSet animal_Search(String Classification_Breed_Name, String Base_Color,
+      String Outcome_type, String Sex, String groupby, String location) {
+    // ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>()
+    String attr = "";
+    if(Classification_Breed_Name!=null) {
+      attr+="Classification_Breed_Name='"+Classification_Breed_Name+"'";
+    }
+    if(Base_Color!=null) {
+      if(attr.length()>0) {
+        attr+=" && Base_Color='"+Base_Color+"'";
+      }
+      else {
+        attr+="Base_Color='"+Base_Color+"'";
+      }
+    }
+    if(Base_Color!=null) {
+      if(attr.length()>0) {
+        attr+=" && Outcome_type='"+Outcome_type+"'";
+      }
+      else {
+        attr+="Outcome_type='"+Outcome_type+"'";
+      }
+    }
+    if(Base_Color!=null) {
+      if(attr.length()>0) {
+        attr+=" && Base_Color='"+Base_Color+"'";
+      }
+      else {
+        attr+="Base_Color='"+Base_Color+"'";
+      }
+    }
+    if(Base_Color!=null) {
+      if(attr.length()>0) {
+        attr+=" && Sex='"+Sex+"'";
+      }
+      else {
+        attr+="Sex='"+Sex+"'";
+      }
+    }
+    if(attr.length()>0) {
+      attr+=";";
+    }
+    
+    
+    
     try {
       String query;
       if (menuType.equals("dog_cat")) {
-
-        query = "SELECT " + stringAttributes + intAttribute + " FROM Animal "
+        if(attr.length()>0) {
+        query = "SELECT * " 
+            + " FROM Animal "
             + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification "
-            + "where Specis_Name = 'Dog' or Specis_Namee = 'Cat'));";
+            + "where Specis_Name = 'Dog' or Specis_Namee = 'Cat'))"
+            + "and "+attr+";";}
+        else {
+          query = "SELECT * " 
+              + " FROM Animal "
+              + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification "
+              + "where Specis_Name = 'Dog' or Specis_Namee = 'Cat');";
+        }
       } else {
-        query = "SELECT " + stringAttributes + intAttribute + " FROM Animal "
+        if(attr.length()>0) {
+        query = "SELECT *  FROM Animal "
             + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification"
-            + "where NOT(Specis_Name = 'Dog' or Specis_Name = 'Cat'));";
+            + "where NOT(Specis_Name = 'Dog' or Specis_Name = 'Cat')) "
+            + "and "+attr+";";}
+        else {
+          query = "SELECT *  FROM Animal "
+              + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification"
+              + "where NOT(Specis_Name = 'Dog' or Specis_Name = 'Cat')); ";
+        }
       }
 
       ResultSet rs = stmt.executeQuery(query);
@@ -397,30 +468,15 @@ public class Main extends Application {
     return results;
   }
 
-
-
   /**
    * for observable list
    * 
    * @param attributes
    * @return
    */
-  private ObservableList<PieChart.Data> pieChart_Animal_Search(String attributes) {
+  private ObservableList<PieChart.Data> pieChart_Animal_Search(ResultSet rs) {
     ObservableList data = FXCollections.observableArrayList();
     try {
-      String query;
-      if (menuType.equals("dog_cat")) {
-
-        query = "SELECT " + attributes + ", count(*)" + " FROM Animal "
-            + " WHERE breed_Name IN (select breed_name " + "From Classification "
-            + "where species_name = 'Dog' or species_name = 'Cat')) " + "Group by breed_Name;";
-      } else {
-        query = "SELECT " + attributes + ", count(*)" + " FROM Animal "
-            + " WHERE breed_Name IN (select breed_name " + "From Classification"
-            + "where NOT(species_name = 'Dog' or species_name = 'Cat')) " + "Group by breed_Name;";
-      }
-
-      ResultSet rs = stmt.executeQuery(query);
       while (rs.next()) {
         // adding data on piechart data
         data.add(new PieChart.Data(rs.getString(1), rs.getInt(2)));
@@ -446,13 +502,13 @@ public class Main extends Application {
     dia.close();
   }
 
-
   /**
    * set up BeginPage
    */
   private void setBeginPage() {
     try {
-      // clear the page for setting up new pages if this is not the first time the program has
+      // clear the page for setting up new pages if this is not the first time the
+      // program has
       // started
       if (!start) {
         clearPage();
@@ -470,7 +526,6 @@ public class Main extends Application {
       if (!start) {
         start(pstage);
       }
-
 
     } catch (SQLException e1) {
       System.out.println("Loading database failed");
@@ -494,7 +549,6 @@ public class Main extends Application {
     Image begin = new Image(getClass().getResource("begin.jpg").toString(), true);
     ImageView beginImage = new ImageView(begin);
     middleBox.getChildren().add(beginImage);
-
 
     // set a login button beside the userName
     Button adoptlogin = new Button("ADOPTER");
@@ -520,12 +574,14 @@ public class Main extends Application {
     surrenderlogin.setOnAction(ActionEvent -> {
       // set up the user type for future uses
       userType = "SURRENDER";
+      // setMenuAddAnimalPage();
       getID();
     });
 
     adminlogin.setOnAction(ActionEvent -> {
       // set up the user type for future uses
       userType = "ADMIN";
+      // setMenuAddAnimalPage();
       setMenuPage();
     });
 
@@ -562,7 +618,6 @@ public class Main extends Application {
 
     upBox.getChildren().add(back);
 
-
     // setting up the page
     Image title = new Image(getClass().getResource("Title.png").toString(), true);
     ImageView titleImage = new ImageView(title);
@@ -585,6 +640,7 @@ public class Main extends Application {
       if ((userId.getText() != null && !userId.getText().isEmpty())) {
         userID = Integer.parseInt(userId.getText());
         setMenuPage();
+
       }
     });
     middleBox.getChildren().addAll(prompt, userId, submit);
@@ -594,12 +650,141 @@ public class Main extends Application {
 
   }
 
+  private void setMenuAddAnimalPage() {
+    clearPage();
+    leftBox = new VBox();
+    upBox = new VBox();
+    middleBox = new VBox();
+    leftBox.setPrefWidth(400);
+    upBox.setPrefHeight(150);
+
+    Button back = new Button("Back");
+    back.setFont(new Font("Copperplate", 20));
+    back.setPrefSize(150, 40);
+    back.setOnAction(e -> {
+      //if(userType.equals("ADMIN"))
+      setMenuPage();      
+
+    });
+    upBox.getChildren().add(back);
+
+    GridPane gp = new GridPane();
+    gp.setMinSize(620, 400);
+    gp.setPadding(new Insets(10, 10, 10, 10));
+
+    // TODO add animal
+    Text name = new Text("Animal name");
+    name.setFont(new Font("Copperplate", 20));
+    TextField animalName = new TextField();
+
+    Text breed = new Text("Breed");
+    breed.setFont(new Font("Copperplate", 20));
+    TextField breedName = new TextField();
+
+    Text color = new Text("Color");
+    color.setFont(new Font("Copperplate", 20));
+    TextField baseColor = new TextField();
+
+    Text type = new Text("Outcome Type");
+    type.setFont(new Font("Copperplate", 20));
+    TextField outcomeType = new TextField();
+
+    Text sex = new Text("Sex");
+    sex.setFont(new Font("Copperplate", 20));
+    TextField gender = new TextField();
+
+    Text num = new Text("Number");
+    num.setFont(new Font("Copperplate", 20));
+    TextField tempNum = new TextField();
+
+    Text birth = new Text("Date of Birth");
+    birth.setFont(new Font("Copperplate", 20));
+    TextField birthday = new TextField();
+
+    Button addAnimal = new Button("add animal");
+    addAnimal.setFont(Font.font("Copperplate", 20));
+    addAnimal.setPrefSize(200, 40);
+
+
+    // TODO
+    addAnimal.setOnAction(e -> {
+      try {
+
+        add_Animal(animalName.getText(), breedName.getText(), baseColor.getText(),
+            outcomeType.getText(), gender.getText(), Integer.parseInt(tempNum.getText()),
+            birthday.getText());
+       // setUserAcountPage();
+      } catch (SQLException e1) {
+        // TODO Auto-generated catch block
+        e1.printStackTrace();
+      }
+    });
+
+    Text ID = new Text("Animal ID");
+    ID.setFont(Font.font("Copperplate", 20));
+    TextField animalId = new TextField();
+
+    // TODO remove animal
+    Button removeAnimal = new Button("remove animal");
+    removeAnimal.setFont(Font.font("Copperplate", 20));
+    removeAnimal.setPrefSize(200, 40);
+
+    // TODO
+    removeAnimal.setOnAction(e -> {
+      try {
+        remove_Animal(Integer.parseInt(animalId.getText()));
+      //  if (userType.equals("ADMIN"))
+     //     setMenuPage();
+     //   else
+     //     setUserAcountPage();
+      } catch (SQLException e1) {
+        // TODO Auto-generated catch block
+        e1.printStackTrace();
+      }
+    });
+
+   // Button next = new Button("next");
+  //  next.setFont(Font.font("Copperplate", 20));
+ //   next.setPrefSize(100, 40);
+  //  next.setOnAction(e -> {
+   //   setUserAcountPage();
+
+   // });
+
+
+    gp.add(name, 0, 0);
+    gp.add(animalName, 1, 0);
+    gp.add(breed, 0, 1);
+    gp.add(breedName, 1, 1);
+    gp.add(color, 0, 2);
+    gp.add(baseColor, 1, 2);
+    gp.add(type, 0, 3);
+    gp.add(outcomeType, 1, 3);
+    gp.add(sex, 0, 4);
+    gp.add(gender, 1, 4);
+    gp.add(num, 0, 5);
+    gp.add(tempNum, 1, 5);
+    gp.add(birth, 0, 6);
+    gp.add(birthday, 1, 6);
+    gp.add(addAnimal, 3, 7);
+
+    gp.add(ID, 0, 8);
+    gp.add(animalId, 1, 8);
+    gp.add(removeAnimal, 3, 9);
+
+    //gp.add(next, 4, 11);
+
+
+    middleBox.getChildren().addAll(gp);
+    start(pstage);
+  }
+
   private void setMenuPage() {
     clearPage();
 
     set_MenuPage_MiddleBox();
     setMenuPage_upBox();
-
+    start(pstage);
 
   }
 
@@ -608,7 +793,7 @@ public class Main extends Application {
 
     Button back = new Button("Back");
     back.setFont(new Font("Copperplate", 20));
-    back.setPrefSize(70, 40);
+    back.setPrefSize(100, 40);
     back.setOnAction(e -> {
       setBeginPage();
 
@@ -626,11 +811,8 @@ public class Main extends Application {
     leftBox.setPrefWidth(400);
     upBox.setPrefHeight(250);
 
-
     upBox.getChildren().addAll(back, tx);
 
-
-    start(pstage);
   }
 
   private void set_MenuPage_MiddleBox() {
@@ -646,14 +828,31 @@ public class Main extends Application {
     Button userAccount = new Button("User Account");
     userAccount.setFont(new Font("Copperplate", 20));
     userAccount.setPrefSize(300, 40);
-    search.setOnAction(e -> setPrelimSearchPage());
+
+    search.setOnAction(e -> {
+
+      setPrelimSearchPage();
+
+    });
     statistic.setOnAction(e -> {
       // connect on statistic method
       setStatsPage();
     });
 
-    userAccount.setOnAction(e -> setUserAcountPage());
+    userAccount.setOnAction(e -> {
+      if (userType.equals("ADMIN") || userType.equals("SURRENDER"))
+        setMenuAddAnimalPage();
+    });
+
     middleBox.getChildren().addAll(search, statistic, userAccount);
+
+    if (userType.equals("ADMIN") || userType.equals("SURRENDER")) {
+      Button addRemove = new Button("Add or Remove Pets");
+      addRemove.setFont(new Font("Copperplate", 20));
+      addRemove.setPrefSize(300, 40);
+      addRemove.setOnAction(e -> setMenuAddAnimalPage());
+      middleBox.getChildren().add(addRemove);
+    }
   }
 
   private void setPrelimSearchPage() {
@@ -683,7 +882,6 @@ public class Main extends Application {
       setSearchPage();
     });
 
-
     RotateTransition rotate = new RotateTransition(Duration.seconds(3), dogCatImage);
     rotate.setByAngle(10);
     rotate.setCycleCount(Animation.INDEFINITE);
@@ -695,7 +893,6 @@ public class Main extends Application {
       rotate.stop();
       dogCatImage.setRotate(0);
     });
-
 
     dogCatImage.setFitHeight(305 / 1.2);
     dogCatImage.setFitWidth(542 / 1.2);
@@ -733,7 +930,6 @@ public class Main extends Application {
       othersImage.setRotate(0);
     });
 
-
     // -----------------------------------------
     Text ot = new Text();
     ot.setText("Click the image and search for other pets!");
@@ -756,7 +952,7 @@ public class Main extends Application {
 
     Button back = new Button("Back");
     back.setFont(new Font("Copperplate", 20));
-    back.setPrefSize(70, 40);
+    back.setPrefSize(100, 40);
     back.setOnAction(e -> {
       setBeginPage();
 
@@ -805,8 +1001,6 @@ public class Main extends Application {
     }
     summary.setFont(Font.font("Copperplate", 20));
 
-
-
     // add preliminary searchable examples
     try {
       // query for grouping animal
@@ -821,7 +1015,6 @@ public class Main extends Application {
     middleBox.resize(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 3);
     middleBox.getChildren().add(summary);
   }
-
 
   private void set_PrelimSearch_Page_upBox() {
     upBox = new VBox();
@@ -844,7 +1037,6 @@ public class Main extends Application {
 
   }
 
-
   /**
    * set up canvas
    */
@@ -853,6 +1045,7 @@ public class Main extends Application {
 
     // middleBox
     set_SearchPage_middleBox();
+    
 
     leftBox = new VBox();
     rightBox = new VBox();
@@ -860,10 +1053,23 @@ public class Main extends Application {
     leftBox.setPrefWidth(250);
     rightBox.setPrefWidth(400);
     // upBox.setPrefHeight(300);
-
+    
+    set_SearchPage_upBox();
 
     start(pstage);
 
+  }
+  
+  private void set_SearchPage_upBox() {
+    upBox = new VBox();
+    Button back = new Button("Back");
+    back.setFont(new Font("Copperplate", 20));
+    back.setPrefSize(150, 40);
+    back.setOnAction(e -> {
+      setMenuPage();
+
+    });
+    upBox.getChildren().add(back);
   }
 
   /**
@@ -872,36 +1078,107 @@ public class Main extends Application {
   private void set_SearchPage_middleBox() {
     middleBox = new VBox();
     // set input for search
-    TextField textField = new TextField();
-    textField.setPrefSize(200, 10);
+    //TextField textField = new TextField();
+   // textField.setPrefSize(200, 10);
+
+
+    // TODO search animal attributes
+    //Text ID = new Text("Animal ID");
+    //ID.setFont(new Font("Copperplate", 20));
+    //TextField animalID = new TextField();
+    
+    Text name = new Text("Animal Name");
+    name.setFont(new Font("Copperplate", 20));
+    TextField animalName = new TextField();
+    
+    Text breedNam = new Text("Breed");
+    breedNam.setFont(new Font("Copperplate", 20));
+    TextField breedName = new TextField();
+    
+    Text color = new Text("Color");
+    color.setFont(new Font("Copperplate", 20));
+    TextField baseColor = new TextField();
+
+    Text type = new Text("Outcome Type");
+    type.setFont(new Font("Copperplate", 20));
+    TextField outcomeType = new TextField();
+
+    Text sex = new Text("Sex");
+    sex.setFont(new Font("Copperplate", 20));
+    TextField gender = new TextField();
+
+    Text num = new Text("Number");//
+    num.setFont(new Font("Copperplate", 20));//
+    TextField tempNum = new TextField();//
+
+    Text birth = new Text("Date of Birth");
+    birth.setFont(new Font("Copperplate", 20));
+    TextField birthday = new TextField();
+       
+    Text speicies = new Text("Animal Species");
+    speicies.setFont(new Font("Copperplate", 20));
+    TextField animalSpec = new TextField();
+    
+    Text loc = new Text("Location");
+    loc.setFont(new Font("Copperplate", 20));
+    TextField animalLoc= new TextField();
+
+
     // textField
     // add button
     Button search = new Button("search");
     search.setFont(new Font("Copperplate", 20));
-    search.setOnAction(e -> setResultPage());
+    search.setPrefSize(200, 40);
+    search.setOnAction(e -> setResultPage(null));
+    
+    search.setOnAction(e -> {
+      setResultPage(  animal_Search(breedName.getText(), baseColor.getText(),
+          outcomeType.getText(), gender.getText(),
+           null, animalLoc.getText()));
+     
+    });
 
     // combine
     GridPane gridPane = new GridPane();
     gridPane.setMinSize(620, 100);
     gridPane.setPadding(new Insets(10, 10, 10, 10));
-    gridPane.add(textField, 0, 0);
-    gridPane.add(search, 1, 0);
+    gridPane.add(name, 0, 0);
+    gridPane.add(animalName, 1, 0);
+    gridPane.add(loc, 2, 0);
+    gridPane.add(animalLoc, 3, 0);
+    gridPane.add(breedNam, 0, 1);
+    gridPane.add(breedName, 1, 1);
+    gridPane.add(speicies, 2, 1);
+    gridPane.add(animalSpec, 3, 1);
+    gridPane.add(color, 0, 2);
+    gridPane.add(baseColor, 1, 2);
+    gridPane.add(type, 2, 2);
+    gridPane.add(outcomeType, 3, 2);
+    gridPane.add(sex, 0, 3);
+    gridPane.add(gender, 1, 3);
+    gridPane.add(num, 2, 3);
+    gridPane.add(tempNum, 3, 3);
+    gridPane.add(birth, 0, 4);
+    gridPane.add(birthday, 1, 4);//
+    gridPane.add(search, 4, 4);
 
     VBox vb = new VBox();
     TableView<ObservableList<String>> tb = new TableView<ObservableList<String>>();
     // TableColumn<ObservableList, String> animalID = new TableColumn("Animal ID");
     // animalID.setPrefWidth(100);
-    // TableColumn<ObservableList, String> animalName = new TableColumn("Animal Name");
+    // TableColumn<ObservableList, String> animalName = new TableColumn("Animal
+    // Name");
     // animalName.setPrefWidth(100);
-    // TableColumn<ObservableList, String> sex = new TableColumn("Sex of the Animal");
+    // TableColumn<ObservableList, String> sex = new TableColumn("Sex of the
+    // Animal");
     // sex.setPrefWidth(150);
     // TableColumn<ObservableList, String> date = new TableColumn("Date of Birth");
     // date.setPrefWidth(100);
-    // TableColumn<ObservableList, String> outcome = new TableColumn("Outcome Type");
+    // TableColumn<ObservableList, String> outcome = new TableColumn("Outcome
+    // Type");
     // outcome.setPrefWidth(100);
     // TableColumn<ObservableList, String> breed = new TableColumn("Breed Name");
     // breed.setPrefWidth(100);
-
 
     ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
 
@@ -954,8 +1231,6 @@ public class Main extends Application {
 
     vb.getChildren().addAll(tb);
 
-
-
     // ------
     String Animal_attribute = null;
     String location = null;
@@ -974,29 +1249,48 @@ public class Main extends Application {
             : "a.Animal_ID in (select At_Animal_Animal_ID from At where Location_Found_Address='"
                 + location + "');");
 
-
-
     middleBox.getChildren().addAll(gridPane, vb);
 
   }
 
   /**
    * set up canvas
+   * @param rs 
    */
-  private void setResultPage() {
+  private void setResultPage(ResultSet rs) {
     clearPage();
-    set_ResultPage_LeftBox();
-    set_ResultPage_RightBox();
+    set_ResultPage_LeftBox(rs);
+    set_ResultPage_RightBox(rs);
     start(pstage);
   }
 
-  private void set_ResultPage_RightBox() {
+  private void set_ResultPage_RightBox(ResultSet rs) {
     rightBox = new VBox();
     // right part is for pie chart
     rightBox.setPrefWidth(500);
+    
+    GridPane gridPane = new GridPane();
+    // Setting size for the pane
+    gridPane.setMinSize(450, 250);
+
+    // Setting the padding
+    gridPane.setPadding(new Insets(10, 10, 10, 10));
+
+    // Setting the vertical and horizontal gaps between the columns
+    gridPane.setVgap(5);
+    gridPane.setHgap(5);
+    
+    Text group = new Text("Group by");
+    TextField groupby =  new TextField();
+    
+ // Arranging all the nodes in the grid
+    gridPane.add(group, 0, 0);
+    gridPane.add(groupby, 0, 1);
     // rightBox.setBackground(new Background(
-    // (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new Insets(10)))));
-    ObservableList<PieChart.Data> pieChartData = pieChart_Animal_Search("attributes"); // TODO: get
+    // (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new
+    // Insets(10)))));
+    ObservableList<PieChart.Data> pieChartData =
+        pieChart_Animal_Search(animal_Search(null, null, null, null, null, null, query, query)); // TODO: get
                                                                                        // an input
                                                                                        // of
                                                                                        // attibute,
@@ -1007,6 +1301,7 @@ public class Main extends Application {
     // button for the next page with view in detail
     Button view = new Button("view");
     view.setFont(new Font("Copperplate", 20));
+    view.setPrefSize(100, 40);
     view.setOnAction(e -> setFullAnimalRecordPage(null));
 
     rightBox.getChildren().addAll(chart, view);
@@ -1014,14 +1309,16 @@ public class Main extends Application {
 
   /**
    * set up the bottom box
+   * @param rs 
    */
-  private void set_ResultPage_LeftBox() {
+  private void set_ResultPage_LeftBox(ResultSet rs) {
     leftBox = new VBox();
 
     // left part is for table
     leftBox.setPrefWidth(500);
     // leftBox.setBackground(new Background(
-    // (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new Insets(10)))));
+    // (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new
+    // Insets(10)))));
     // add Button to go back to the menu page
     Button menu = new Button("menu");
     menu.setFont(new Font("Copperplate", 20));
@@ -1040,8 +1337,6 @@ public class Main extends Application {
     ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
 
     try {
-
-      ResultSet rs = stmt.executeQuery(query);
 
       for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
         // We are using non property style for making dynamic table
@@ -1098,7 +1393,7 @@ public class Main extends Application {
     set_FullAnimalRecordPage_LeftBox();
     set_FullAnimalRecordPage_RightBox();
     set_FullAnimalRecordPage_MiddleBox(list);
-    set_FullAnimalRecordPage_BottomBox();
+    // set_FullAnimalRecordPage_BottomBox();
     start(pstage);
   }
 
@@ -1111,26 +1406,27 @@ public class Main extends Application {
     leftBox.setPrefWidth(200);
     // set right side's background color
     // leftBox.setBackground(new Background(
-    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new
+    // Insets(10)))));
     // right side button of design
     Button viewAll = new Button("View All");
     viewAll.setPrefSize(80, 40);
     viewAll.setFont(new Font("Copperplate", 20));
     // set on action of view History button
-    viewAll.setOnAction(E -> setResultPage());
+    viewAll.setOnAction(E -> setResultPage(null));
 
     // add in date
     // not so sure if this should be a button
-    Button date = new Button("Date");
-    date.setFont(new Font("Copperplate", 20));
-    date.setPrefSize(80, 40);
-    date.setOnAction(e -> {
-      // TODO connect to the result's add in date
+    // Button date = new Button("Date");
+    // date.setFont(new Font("Copperplate", 20));
+    // date.setPrefSize(80, 40);
+    // date.setOnAction(e -> {
+    // TODO connect to the result's add in date
 
-    });
+    // });
 
     // add buttons to the right box
-    leftBox.getChildren().addAll(viewAll, date);
+    leftBox.getChildren().add(viewAll);
 
   }
 
@@ -1143,7 +1439,8 @@ public class Main extends Application {
     rightBox.setPrefWidth(200);
     // set color
     // rightBox.setBackground(new Background(
-    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new
+    // Insets(10)))));
     // Adopt information page
     Button adopt = new Button("Adopt");
     adopt.setFont(new Font("Copperplate", 20));
@@ -1153,7 +1450,7 @@ public class Main extends Application {
     Button user = new Button("user info");
     user.setFont(new Font("Copperplate", 20));
     user.setPrefSize(80, 40);
-    user.setOnAction(e -> setFullUserInfoPage());
+    user.setOnAction(e -> setUserAcountPage());
 
     // add buttons to the right box
     rightBox.getChildren().addAll(adopt, user);
@@ -1168,17 +1465,83 @@ public class Main extends Application {
     middleBox = new VBox();
     // set color
     // middleBox.setBackground(new Background(
-    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new
+    // Insets(10)))));
     GridPane gp = new GridPane();
     ScrollPane sp = new ScrollPane();
     sp.setContent(gp);// TODO: set scrolling
+    
+   
     // pet
-    Button pet = new Button("pet");
-    pet.setFont(new Font("Copperplate", 20));
-    pet.setPrefSize(80, 40);
-    pet.setOnAction(e -> {
-      // connect to the pet's information
-    });
+    Image cat0 = new Image(getClass().getResource("Cat_0.png").toString(), true);
+    ImageView cat0Image = new ImageView(cat0);
+    
+    Image cat1 = new Image(getClass().getResource("Cat_1.png").toString(), true);
+    ImageView cat1Image = new ImageView(cat1);
+    
+    Image dog0 = new Image(getClass().getResource("Dog_0.png").toString(), true);
+    ImageView dog0Image = new ImageView(dog0);
+    
+    Image dog1 = new Image(getClass().getResource("Dog_1.png").toString(), true);
+    ImageView dog1Image = new ImageView(dog1);
+    
+    Image bird0 = new Image(getClass().getResource("Bird_0.png").toString(), true);
+    ImageView bird0Image = new ImageView(bird0);
+    
+    Image bird1 = new Image(getClass().getResource("Bird_1.png").toString(), true);
+    ImageView bird1Image = new ImageView(bird1);
+    
+    Image livestock0 = new Image(getClass().getResource("Livestock_0.png").toString(), true);
+    ImageView livestock0Image = new ImageView(livestock0);
+    
+    Image livestock1 = new Image(getClass().getResource("Livestock_1.png").toString(), true);
+    ImageView livestock1Image = new ImageView(livestock1);
+    
+    ImageView randImage = null;
+    
+  //get speices name
+    if(list.get(0).equals("Cat")) {
+      //get this animal ID
+      // if this ID is an even number
+      if(Integer.parseInt(list.get(1))/2 == 0) {
+        randImage = cat0Image;
+      } else {
+        //it is an odd number
+        randImage = cat1Image;
+      }
+    }
+    else if(list.get(0).equals("Dog")) {
+      //get this animal ID
+      // if this ID is an even number
+      if(Integer.parseInt(list.get(1))/2 == 0) {
+        randImage = dog0Image;
+      } else {
+        //it is an odd number
+        randImage = dog1Image;
+      }
+    }
+    else if(list.get(0).equals("Bird")) {
+      //get this animal ID
+      // if this ID is an even number
+      if(Integer.parseInt(list.get(1))/2 == 0) {
+        randImage = bird0Image;
+      } else {
+        //it is an odd number
+        randImage = bird1Image;
+      }
+    }
+    else if(list.get(0).equals("Livestock")) {
+      //get this animal ID
+      // if this ID is an even number
+      if(Integer.parseInt(list.get(1))/2 == 0) {
+        randImage = livestock0Image;
+      } else {
+        //it is an odd number
+        randImage = livestock1Image;
+      }
+    }
+    
+    
 
     Text tx = new Text();
     String record = "";
@@ -1187,13 +1550,29 @@ public class Main extends Application {
     }
     tx.setText(record);
 
+    Button previous = new Button("prev");
+    previous.setFont(new Font("Copperplate", 20));
+    previous.setPrefSize(100, 40);
+    previous.setOnAction(e -> {
+      // TODO connect to the previous page if not null
+
+    });
+    // button for next page
+    Button next = new Button("next");
+    next.setFont(new Font("Copperplate", 20));
+    next.setPrefSize(100, 40);
+    next.setOnAction(e -> {
+      // TODO connect to the next page if not null
+
+    });
 
     // TableColumn adopters = new TableColumn("recent adopter");
     // adopters.setPrefWidth(100);
     // TableColumn breed = new TableColumn("breed");
     // breed.setPrefWidth(100);
-    // table.getColumns().addAll(adopters, breed);
-
+    // TableColumn date = new TableColumn("date");
+    // breed.setPrefWidth(100);
+    // table.getColumns().addAll(adopters, breed, date);
 
     // Setting size for the pane
     gp.setMinSize(300, 600);
@@ -1209,8 +1588,10 @@ public class Main extends Application {
     gp.setAlignment(Pos.TOP_CENTER);
 
     // Arranging all the nodes in the grid
-    gp.add(pet, 0, 1);
+    gp.add(randImage, 0, 1);
     gp.add(tx, 1, 1);
+    gp.add(previous, 0, 5);
+    gp.add(next, 1, 5);
 
     //
     VBox vbox = new VBox();
@@ -1219,46 +1600,46 @@ public class Main extends Application {
     vbox.getChildren().add(sp);
     // TODO get connection to mysql and add each datum into vbox
 
-    middleBox.getChildren().addAll(pet, vbox);
+    middleBox.getChildren().addAll(gp, vbox);
 
   }
-
 
   /**
    * set up the bottom box
    */
   private void set_FullAnimalRecordPage_BottomBox() {
-    bottomBox = new VBox();
+    // bottomBox = new VBox();
     // set color
     // bottomBox.setBackground(new Background(
-    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
+    // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new
+    // Insets(10)))));
     // button for previous page
-    Button previous = new Button("prev");
-    previous.setFont(new Font("Copperplate", 20));
-    previous.setPrefSize(80, 40);
-    previous.setOnAction(e -> {
-      // TODO connect to the previous page if not null
+    // Button previous = new Button("prev");
+    // previous.setFont(new Font("Copperplate", 20));
+    // previous.setPrefSize(80, 40);
+    // previous.setOnAction(e -> {
+    // TODO connect to the previous page if not null
 
-    });
+    // });
     // button for next page
-    Button next = new Button("next");
-    next.setFont(new Font("Copperplate", 20));
-    next.setPrefSize(80, 40);
-    next.setOnAction(e -> {
-      // TODO connect to the next page if not null
+    // Button next = new Button("next");
+    // next.setFont(new Font("Copperplate", 20));
+    // next.setPrefSize(80, 40);
+    // next.setOnAction(e -> {
+    // TODO connect to the next page if not null
 
-    });
-    bottomBox.getChildren().addAll(previous, next);
+    // });
+    // bottomBox.getChildren().addAll(previous, next);
   }
 
   /**
    * set up canvas
    */
-  private void setFullUserInfoPage() {
-    clearPage();
-    set_FullUserInfoPage_MiddleBox();
-    start(pstage);
-  }
+  // private void setFullUserInfoPage() {
+  // clearPage();
+  // set_FullUserInfoPage_MiddleBox();
+  // start(pstage);
+  // }
 
   /**
    * set up the bottom box
@@ -1331,7 +1712,7 @@ public class Main extends Application {
     // add Button to go back to the menu page
     Button menu = new Button("menu");
     menu.setFont(new Font("Copperplate", 20));
-    menu.setPrefSize(80, 40);
+    menu.setPrefSize(100, 40);
     menu.setOnAction(e -> setMenuPage());
     middleBox.getChildren().addAll(menu, gp);
   }
@@ -1354,12 +1735,10 @@ public class Main extends Application {
     // add Button to go back to the menu page
     Button menu = new Button("menu");
     menu.setFont(new Font("Copperplate", 20));
-    menu.setPrefSize(80, 40);
+    menu.setPrefSize(100, 40);
     menu.setOnAction(e -> setMenuPage());
     upBox.getChildren().add(menu);
   }
-
-
 
   private void set_UserAcountPage_middleBox() {
     middleBox = new VBox();
@@ -1376,10 +1755,52 @@ public class Main extends Application {
     Text address = new Text("address");
     TextField addr = new TextField();
 
+
     // save data
     Button save = new Button("save");
+
+
+    // TODO:get input
+    if (newUser) {
+
+      try {
+        add_User(null, null, null, null, 0, 0);
+      } catch (SQLException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+
+      newUser = false;
+    } else {
+      try {
+        alter_User(0, null, null, null, null, 0, 0);
+      } catch (SQLException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+
+
     save.setFont(new Font("Copperplate", 20));
     save.setPrefSize(80, 40);
+
+    // TableView tb = new TableView();
+    // TableColumn surDonate = new TableColumn("donate pets history");
+    // surDonate.setPrefWidth(300);
+    // TableColumn surAdopt = new TableColumn("adopt pets history");
+    // surAdopt.setPrefWidth(300);
+    // tb.getColumns().addAll(surDonate, surAdopt);
+    // tb.getOnScroll();
+    // tb.setPrefSize(600, 600);
+    // TODO: present history?
+    String hoistory;
+    try {
+      hoistory = link_account(null, null);
+    } catch (SQLException e) {
+
+      e.printStackTrace();
+    }
+    // TODO:add hoistory to text field
 
     // add these text and textfields to gridpane
     GridPane gridPane = new GridPane();
@@ -1404,6 +1825,7 @@ public class Main extends Application {
     gridPane.add(address, 0, 2);
     gridPane.add(addr, 1, 2);
     gridPane.add(save, 5, 5);
+    // gridPane.add(tb, 0, 6);
 
     // adopter's two buttons
     if (userType.equals("ADOPTER")) {
@@ -1416,15 +1838,12 @@ public class Main extends Application {
       gridPane.add(petNum, 0, 4);
       gridPane.add(pet, 1, 4);
 
-
     } else if (userType.equals("SURRENDER")) {
       Text note = new Text("note for the adopter");
       TextField noteAdopt = new TextField();
       gridPane.add(note, 0, 3);
       gridPane.add(noteAdopt, 1, 3);
     }
-
-
 
     middleBox.getChildren().addAll(gridPane);
   }
@@ -1465,13 +1884,11 @@ public class Main extends Application {
     // add Button to go back to the menu page
     Button menu = new Button("menu");
     menu.setFont(new Font("Copperplate", 20));
-    menu.setPrefSize(80, 40);
+    menu.setPrefSize(100, 40);
     menu.setOnAction(e -> setMenuPage());
     bottomBox.getChildren().add(menu);
     middleBox.getChildren().addAll(menu, address, ownerAddr);
   }
-
-
 
   /**
    * Get user at a coordinate and Get user name
