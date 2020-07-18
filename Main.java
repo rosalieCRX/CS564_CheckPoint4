@@ -20,10 +20,17 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
+import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.RotateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.Observable;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
@@ -48,7 +55,10 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.CellDataFeatures;
+import javafx.scene.control.TablePosition;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
@@ -74,6 +84,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.util.Callback;
+import javafx.util.Duration;
 
 /**
  * Social network visualizer of ateam 7
@@ -115,6 +127,9 @@ public class Main extends Application {
   private static boolean newUser = false;
 
   int change = 0;
+
+  ObservableList<String> row;// row selected from table
+  String query;
 
   // ----------------------------------------SQL--------------------------------------------
   /**
@@ -179,9 +194,15 @@ public class Main extends Application {
 
   }
 
-  private void add_Animal(String attibutes) throws SQLException {
+  private void add_Animal(int Animal_ID, String Animal_Name, String Classification_Breed_Name,
+      String Base_Color, String Outcome_type, String Sex, int Temp_Combination_Number,
+      String Date_of_Birth) throws SQLException {
     // query for grouping animal
-    String query = "insert into Animal (" + nextAnimalID + "," + attibutes;
+    String query =
+        "INSERT INTO Animal (Animal_ID,Animal_Name,Classification_Breed_Name,Base_Color,  Outcome_type, Sex,  Temp_Combination_Number, Date_of_Birth) VALUES ('"
+            + Animal_ID + "','" + Animal_Name + "','" + Classification_Breed_Name + "','"
+            + Base_Color + "','" + Outcome_type + "','" + Sex + "','" + Temp_Combination_Number
+            + "','" + Date_of_Birth + "');";
     stmt.executeQuery(query);
     nextAnimalID++;
   }
@@ -192,18 +213,80 @@ public class Main extends Application {
     stmt.executeQuery(query);
   }
 
-  private void add_User(String attibutes) throws SQLException {
-    // query for grouping animal
-    String query = "insert into All_Users (" + nextUserID + "," + attibutes;
+  private void add_User(String Name, String Phone, String Address,
+      String Notes_and_Criteria_for_adoption, float Overall_Neighbor_Rating,
+      int Total_Number_of_Pets_up_to_now) throws SQLException {
+
+    String query = "insert into All_Users (User_ID,Name,Phone,Address) values(" + nextUserID + ",'"
+        + Name + "','" + Phone + "','" + Address + "');";
     stmt.executeQuery(query);
+
+    if (userType.equals("SURRENDER")) {
+      String query1 = "insert into Surrender_Owner (User_ID,Overall_Neighbor_Rating) values("
+          + nextUserID + ",'" + Notes_and_Criteria_for_adoption + "');";
+      stmt.executeQuery(query1);
+
+    } else if (userType.equals("ADOPTOR")) {
+      String query2 =
+          "insert into Potential_Adopter (A_User_ID,Overall_Neighbor_Rating,Total_Number_of_Pets_up_to_now) values("
+              + nextUserID + "," + Overall_Neighbor_Rating + "," + Total_Number_of_Pets_up_to_now
+              + ");";
+      stmt.executeQuery(query2);
+    }
     nextUserID++;
   }
 
   private void remove_User(int ID) throws SQLException {
-    // query for grouping animal
-    String query = "delete from All_Users " + "Where User_ID = " + ID;
-    stmt.executeQuery(query);
+    if (userType.equals("ADMIN")) {
+      // query for grouping animal
+      String query = "delete from All_Users " + "Where User_ID = " + ID;
+      stmt.executeQuery(query);
+    }
+  }
 
+
+  private String link_account(String Name, String Phone) throws SQLException {
+    String query = "Select u1.UserID,u2.UserID " + "From All_Users u1, All_Users u2 "
+        + "Where u1.Name = u2.Name AND NOT(u1.Phone = u2.Phone) AND strcmp(u1.Phone, u2.Phone)<0 AND u1.UserID in (select A_User_ID from Potential_Adopter);"
+        + "Order by u1.UserID";
+    ResultSet rs = stmt.executeQuery(query);
+    if (rs.next()) {
+      return connectUserInfo(rs.getInt(1), rs.getInt(2));
+    }
+    return null;
+
+  }
+
+
+
+  private String connectUserInfo(int AdoptorId, int SurrID) throws SQLException {
+
+
+    String results = "";
+    CallableStatement myCallStmt = conn.prepareCall("call " + "connectUserInfo(?,?)");
+
+    myCallStmt.setInt(1, AdoptorId);
+    myCallStmt.setInt(2, SurrID);
+
+    ResultSet total = myCallStmt.executeQuery();
+    if (total.next()) {
+      results = "\n    Phone: " + total.getString(1) + "\n    Address: " + total.getString(2);
+    }
+    myCallStmt.getMoreResults();
+
+    total = myCallStmt.getResultSet();
+    if (total.next())
+      results += "     Adopter Account:\n" + "Overall_Neighbor_Rating: +" + total.getInt(1)
+          + "\nTotal_Number_of_Pets_up_to_now: " + total.getInt(2) + "\nAdopt_Animal_Animal_ID: "
+          + total.getInt(3) + "\nAdopt_Time: " + total.getString(4);
+
+    myCallStmt.getMoreResults();
+    total = myCallStmt.getResultSet();
+    if (total.next())
+      results += "     Surrender Account:\n" + "Animal_Animal_ID: +" + total.getInt(1)
+          + "\nGives_up_Time: " + total.getString(4);
+
+    return results;
   }
 
 
@@ -269,35 +352,52 @@ public class Main extends Application {
    * @param stringAttributes
    * @return
    */
-  private ArrayList<ArrayList<String>> animal_Search(String stringAttributes, int intAttribute) {
-    ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
+  private ResultSet animal_Search(String stringAttributes, int intAttribute) {
+    // ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
     try {
       String query;
       if (menuType.equals("dog_cat")) {
 
-        query = "SELECT " + stringAttributes + " FROM Animal "
-            + " WHERE breed_Name IN (select breed_name " + "From Classification "
-            + "where species_name = 'Dog' or species_name = 'Cat'));";
+        query = "SELECT " + stringAttributes + intAttribute + " FROM Animal "
+            + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification "
+            + "where Specis_Name = 'Dog' or Specis_Namee = 'Cat'));";
       } else {
-        query = "SELECT " + stringAttributes + " FROM Animal "
-            + " WHERE breed_Name IN (select breed_name " + "From Classification"
-            + "where NOT(species_name = 'Dog' or species_name = 'Cat'));";
+        query = "SELECT " + stringAttributes + intAttribute + " FROM Animal "
+            + " WHERE Classification_Breed_Name IN (select Breed_Name " + "From Classification"
+            + "where NOT(Specis_Name = 'Dog' or Specis_Name = 'Cat'));";
       }
 
       ResultSet rs = stmt.executeQuery(query);
-      while (rs.next()) {
-        ArrayList<String> row = new ArrayList<String>();
-        for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
-          row.add(rs.getString(i));
-        }
-        result.add(row);
-      }
+      // while (rs.next()) {
+      // ArrayList<String> row = new ArrayList<String>();
+      // for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+      // row.add(rs.getString(i));
+      // }
+      // result.add(row);
+      // }
+      return rs;
     } catch (Exception e) {
-      System.out.println("Error on DB connection");
+      System.out.println("Error on animal_Search");
 
     }
-    return result;
+    // return result;
+    return null;
+
   }
+
+  private String storedProcedure_search_move_Date_and_history(int ID) throws SQLException {
+    String results = "";
+    CallableStatement myCallStmt = conn.prepareCall("call " + "search_move_Date_and_history(?)");
+
+    ResultSet rs = myCallStmt.executeQuery();
+    if (rs.next())
+      results = "Take_in_Date: " + rs.getString(1) + "\nIntake_Type: " + rs.getString(2)
+          + "\nFound_Address" + rs.getString(3) + "\nl.Intake_Condition: " + rs.getString(4);
+
+    return results;
+  }
+
+
 
   /**
    * for observable list
@@ -363,6 +463,8 @@ public class Main extends Application {
       }
 
       set_BeginPage_MiddleBox();
+      bottomBox = new VBox();
+      bottomBox.setPrefHeight(100);
 
       // update the stage with newly set up GUI
       if (!start) {
@@ -396,13 +498,17 @@ public class Main extends Application {
 
     // set a login button beside the userName
     Button adoptlogin = new Button("ADOPTER");
-    adoptlogin.setPrefSize(150, 40);
+    adoptlogin.setFont(new Font("Copperplate", 20));
+    adoptlogin.setPrefSize(300, 40);
     Button surrenderlogin = new Button("SURRENDER");
-    surrenderlogin.setPrefSize(150, 40);
+    surrenderlogin.setFont(new Font("Copperplate", 20));
+    surrenderlogin.setPrefSize(300, 40);
     Button adminlogin = new Button("ADMIN");
-    adminlogin.setPrefSize(150, 40);
+    adminlogin.setFont(new Font("Copperplate", 20));
+    adminlogin.setPrefSize(300, 40);
     Button register = new Button("Register as a new User");
-    register.setPrefSize(150, 40);
+    register.setPrefSize(300, 40);
+    register.setFont(new Font("Copperplate", 20));
 
     // set up functionality
     adoptlogin.setOnAction(ActionEvent -> {
@@ -447,7 +553,8 @@ public class Main extends Application {
     middleBox = new VBox();
 
     Button back = new Button("Back");
-    back.setPrefSize(70, 40);
+    back.setFont(new Font("Copperplate", 20));
+    back.setPrefSize(150, 40);
     back.setOnAction(e -> {
       setBeginPage();
 
@@ -466,12 +573,14 @@ public class Main extends Application {
     middleBox.getChildren().add(beginImage);
 
     Button prompt = new Button("Hello there! Please type your userID!");
-    prompt.setPrefSize(300, 40);
+    prompt.setFont(new Font("Copperplate", 20));
+    prompt.setPrefSize(500, 40);
     TextField userId = new TextField();
-    userId.setMaxSize(300, 50);
-    userId.setMinSize(300, 50);
+    userId.setMaxSize(500, 50);
+    userId.setMinSize(500, 50);
     Button submit = new Button("Submit & Begin");
-    submit.setPrefSize(300, 40);
+    submit.setFont(new Font("Copperplate", 20));
+    submit.setPrefSize(500, 40);
     submit.setOnAction(e -> {
       if ((userId.getText() != null && !userId.getText().isEmpty())) {
         userID = Integer.parseInt(userId.getText());
@@ -498,6 +607,7 @@ public class Main extends Application {
     upBox = new VBox();
 
     Button back = new Button("Back");
+    back.setFont(new Font("Copperplate", 20));
     back.setPrefSize(70, 40);
     back.setOnAction(e -> {
       setBeginPage();
@@ -513,7 +623,7 @@ public class Main extends Application {
 
     leftBox = new VBox();
     rightBox = new VBox();
-    leftBox.setPrefWidth(500);
+    leftBox.setPrefWidth(400);
     upBox.setPrefHeight(250);
 
 
@@ -528,11 +638,14 @@ public class Main extends Application {
     middleBox = new VBox();
 
     Button search = new Button("Start Searching Animal");
-    search.setPrefSize(150, 40);
+    search.setPrefSize(300, 40);
+    search.setFont(new Font("Copperplate", 20));
     Button statistic = new Button("Statistic for Animals");
-    statistic.setPrefSize(150, 40);
+    statistic.setPrefSize(300, 40);
+    statistic.setFont(new Font("Copperplate", 20));
     Button userAccount = new Button("User Account");
-    userAccount.setPrefSize(150, 40);
+    userAccount.setFont(new Font("Copperplate", 20));
+    userAccount.setPrefSize(300, 40);
     search.setOnAction(e -> setPrelimSearchPage());
     statistic.setOnAction(e -> {
       // connect on statistic method
@@ -560,6 +673,7 @@ public class Main extends Application {
     gp.setMinSize(650, 350);
     gp.setPadding(new Insets(10, 10, 10, 10));
 
+    // --------------------------------------set up dog image
     Image dogCat = new Image(getClass().getResource("dog_cat.jpg").toString(), true);
     ImageView dogCatImage = new ImageView(dogCat);
 
@@ -569,9 +683,24 @@ public class Main extends Application {
       setSearchPage();
     });
 
+
+    RotateTransition rotate = new RotateTransition(Duration.seconds(3), dogCatImage);
+    rotate.setByAngle(10);
+    rotate.setCycleCount(Animation.INDEFINITE);
+    rotate.setInterpolator(Interpolator.LINEAR);
+    dogCatImage.setOnMouseEntered((MouseEvent e) -> {
+      rotate.play();
+    });
+    dogCatImage.setOnMouseExited((MouseEvent e) -> {
+      rotate.stop();
+      dogCatImage.setRotate(0);
+    });
+
+
     dogCatImage.setFitHeight(305 / 1.2);
     dogCatImage.setFitWidth(542 / 1.2);
 
+    // -----------------------------------------
     Text dc = new Text();
     dc.setText("Click the image and search for cats and dogs!");
     dc.setFont(Font.font("Copperplate", 20));
@@ -579,6 +708,7 @@ public class Main extends Application {
     gp.add(dogCatImage, 0, 0);
     gp.add(dc, 1, 0);
 
+    // ------------------------------------set up cat image
     Image others = new Image(getClass().getResource("others.jpg").toString(), true);
     ImageView othersImage = new ImageView(others);
 
@@ -591,6 +721,20 @@ public class Main extends Application {
       setSearchPage();
     });
 
+    RotateTransition rotate2 = new RotateTransition(Duration.seconds(3), othersImage);
+    rotate2.setByAngle(10);
+    rotate2.setCycleCount(Animation.INDEFINITE);
+    rotate2.setInterpolator(Interpolator.LINEAR);
+    othersImage.setOnMouseEntered((MouseEvent e) -> {
+      rotate2.play();
+    });
+    othersImage.setOnMouseExited((MouseEvent e) -> {
+      rotate2.stop();
+      othersImage.setRotate(0);
+    });
+
+
+    // -----------------------------------------
     Text ot = new Text();
     ot.setText("Click the image and search for other pets!");
     ot.setFont(Font.font("Copperplate", 20));
@@ -611,6 +755,7 @@ public class Main extends Application {
     middleBox = new VBox();
 
     Button back = new Button("Back");
+    back.setFont(new Font("Copperplate", 20));
     back.setPrefSize(70, 40);
     back.setOnAction(e -> {
       setBeginPage();
@@ -620,12 +765,14 @@ public class Main extends Application {
 
     Text pick = new Text("Click the Button Below to be an Adopter or a Surrender");
     Button adopter = new Button("Adopter");
+    adopter.setFont(new Font("Copperplate", 20));
     adopter.setPrefSize(70, 40);
     adopter.setOnAction(e -> {
       userType = "ADOPTER";
       setUserAcountPage();
     });
     Button surrender = new Button("Surrender");
+    surrender.setFont(new Font("Copperplate", 20));
     surrender.setPrefSize(90, 40);
     surrender.setOnAction(e -> {
       userType = "SURRENDER";
@@ -680,6 +827,7 @@ public class Main extends Application {
     upBox = new VBox();
 
     Button userpage = new Button("USER ACCOUNT");
+    userpage.setFont(new Font("Copperplate", 20));
 
     Text tx = null;
     try {
@@ -729,54 +877,105 @@ public class Main extends Application {
     // textField
     // add button
     Button search = new Button("search");
+    search.setFont(new Font("Copperplate", 20));
     search.setOnAction(e -> setResultPage());
 
     // combine
     GridPane gridPane = new GridPane();
-    gridPane.setMinSize(650, 100);
+    gridPane.setMinSize(620, 100);
     gridPane.setPadding(new Insets(10, 10, 10, 10));
     gridPane.add(textField, 0, 0);
     gridPane.add(search, 1, 0);
 
     VBox vb = new VBox();
-    TableView<List<String>> tb = new TableView<List<String>>();
-    TableColumn<List<String>, String> animalID = new TableColumn("Animal ID");
-    animalID.setPrefWidth(100);
-    TableColumn<List<String>, String> animalName = new TableColumn("Animal Name");
-    animalName.setPrefWidth(100);
-    TableColumn<List<String>, String> sex = new TableColumn("Sex of the Animal");
-    sex.setPrefWidth(150);
-    TableColumn<List<String>, String> date = new TableColumn("Date of Birth");
-    date.setPrefWidth(100);
-    TableColumn<List<String>, String> outcome = new TableColumn("Outcome Type");
-    outcome.setPrefWidth(100);
-    TableColumn<List<String>, String> breed = new TableColumn("Breed Name");
-    breed.setPrefWidth(100);
-    tb.getColumns().addAll(animalID, animalName, sex, date, outcome, breed);
+    TableView<ObservableList<String>> tb = new TableView<ObservableList<String>>();
+    // TableColumn<ObservableList, String> animalID = new TableColumn("Animal ID");
+    // animalID.setPrefWidth(100);
+    // TableColumn<ObservableList, String> animalName = new TableColumn("Animal Name");
+    // animalName.setPrefWidth(100);
+    // TableColumn<ObservableList, String> sex = new TableColumn("Sex of the Animal");
+    // sex.setPrefWidth(150);
+    // TableColumn<ObservableList, String> date = new TableColumn("Date of Birth");
+    // date.setPrefWidth(100);
+    // TableColumn<ObservableList, String> outcome = new TableColumn("Outcome Type");
+    // outcome.setPrefWidth(100);
+    // TableColumn<ObservableList, String> breed = new TableColumn("Breed Name");
+    // breed.setPrefWidth(100);
+
+
+    ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
+
+    try {
+      ResultSet rs = storedProcedure_Prelim_Sort_menuType();
+
+      for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
+        // We are using non property style for making dynamic table
+        final int j = i;
+        TableColumn col = new TableColumn(rs.getMetaData().getColumnName(i + 1));
+        col.setCellValueFactory(
+            new Callback<CellDataFeatures<ObservableList, String>, ObservableValue<String>>() {
+              public ObservableValue<String> call(CellDataFeatures<ObservableList, String> param) {
+                return new SimpleStringProperty(param.getValue().get(j).toString());
+              }
+            });
+
+        tb.getColumns().addAll(col);
+      }
+
+      while (rs.next()) {
+        // Iterate Row
+        ObservableList<String> row = FXCollections.observableArrayList();
+
+        row.add(rs.getInt(1) + "");
+
+        for (int i = 2; i <= rs.getMetaData().getColumnCount(); i++) {
+          // Iterate Column
+          row.add(rs.getString(i));
+        }
+
+        data.add(row);
+
+      }
+    } catch (
+
+    SQLException e1) {
+      e1.printStackTrace();
+    }
+
+    tb.setItems(data);;
+    tb.setOnMouseClicked((MouseEvent e) -> {
+      int index = tb.getSelectionModel().selectedIndexProperty().get();
+      row = tb.getItems().get(index);// .selectionModelProperty().
+      setFullAnimalRecordPage(row);
+
+    });
+
+    // tb.getColumns().addAll(animalID, animalName, sex, date, outcome, breed);
+
     vb.getChildren().addAll(tb);
 
-    // add preliminary searchable examples
-    // try {
-    // ResultSet rs= storedProcedure_Prelim_Sort_menuType();
-    // while (rs.next()) {
-    // animalID.setCellValueFactory(
-    // data -> {
-    // List<String> rowValues = data.getValue();
-    // String cellValue ;
-    // cellValue = rowValues.get(colIndex);
-    // } else {
-    // cellValue = "" ;
-    // }
-    // return new ReadOnlyStringWrapper(cellValue);});
-    //
-    // }
-    // }catch(
-    //
-    // SQLException e1)
-    // {
-    // e1.printStackTrace();
-    // }
-    //
+
+
+    // ------
+    String Animal_attribute = null;
+    String location = null;
+    int Temperatment = 0;
+    String breed = null;
+    query = "Select * " + "From "
+        + ((Temperatment == 0) ? "Animal a" : "(Animal a inner join Temperatment t)")
+        + ((breed == null) ? "" : "inner join Classification c") + " " + "Where "
+        + ((Temperatment == 0) ? "not (a.Animal_ID =0)"
+            : "(a.Temp_Combination_Number=" + Temperatment + ")")
+        + " and "
+        + ((breed == null) ? "not (a.Animal_ID =0)"
+            : "(a.Classification_Breed_Name=" + Temperatment + ")")
+        + " AND "
+        + ((location == null) ? "not (a.Animal_ID =0);"
+            : "a.Animal_ID in (select At_Animal_Animal_ID from At where Location_Found_Address='"
+                + location + "');");
+
+
+
     middleBox.getChildren().addAll(gridPane, vb);
 
   }
@@ -807,7 +1006,8 @@ public class Main extends Application {
 
     // button for the next page with view in detail
     Button view = new Button("view");
-    view.setOnAction(e -> setFullAnimalRecordPage());
+    view.setFont(new Font("Copperplate", 20));
+    view.setOnAction(e -> setFullAnimalRecordPage(null));
 
     rightBox.getChildren().addAll(chart, view);
   }
@@ -824,17 +1024,58 @@ public class Main extends Application {
     // (new BackgroundFill(Color.BURLYWOOD, new CornerRadii(100), new Insets(10)))));
     // add Button to go back to the menu page
     Button menu = new Button("menu");
+    menu.setFont(new Font("Copperplate", 20));
     menu.setOnAction(e -> setMenuPage());
     // create table for search result
-    TableView table = new TableView();
+    TableView<ObservableList<String>> table = new TableView();
     table.setPrefSize(100, 600);
-    TableColumn Temperament = new TableColumn("Temperament");
-    Temperament.setPrefWidth(100);
-    TableColumn petName = new TableColumn("PetName");
-    TableColumn Location = new TableColumn("Location");
-    TableColumn animal = new TableColumn("Animal");
-    table.getColumns().addAll(Temperament, petName, Location, animal);
+    // TableColumn Temperament = new TableColumn("Temperament");
+    // Temperament.setPrefWidth(100);
+    // TableColumn petName = new TableColumn("PetName");
+    // TableColumn Location = new TableColumn("Location");
+    // TableColumn animal = new TableColumn("Animal");
+    // table.getColumns().addAll(Temperament, petName, Location, animal);
     table.getOnScroll();
+
+    ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
+
+    try {
+
+      ResultSet rs = stmt.executeQuery(query);
+
+      for (int i = 0; i < rs.getMetaData().getColumnCount(); i++) {
+        // We are using non property style for making dynamic table
+        final int j = i;
+        TableColumn col = new TableColumn(rs.getMetaData().getColumnName(i + 1));
+        col.setCellValueFactory(
+            new Callback<CellDataFeatures<ObservableList, String>, ObservableValue<String>>() {
+              public ObservableValue<String> call(CellDataFeatures<ObservableList, String> param) {
+                return new SimpleStringProperty(param.getValue().get(j).toString());
+              }
+            });
+
+        table.getColumns().addAll(col);
+      }
+
+      while (rs.next()) {
+        // Iterate Row
+        ObservableList<String> row = FXCollections.observableArrayList();
+
+        row.add(rs.getInt(1) + "");
+
+        for (int i = 2; i <= rs.getMetaData().getColumnCount(); i++) {
+          // Iterate Column
+          row.add(rs.getString(i));
+        }
+
+        data.add(row);
+
+      }
+    } catch (
+
+    SQLException e1) {
+      e1.printStackTrace();
+    }
 
     //
     VBox vbox = new VBox();
@@ -849,12 +1090,14 @@ public class Main extends Application {
 
   /**
    * set up canvas
+   * 
+   * @param list
    */
-  private void setFullAnimalRecordPage() {
+  private void setFullAnimalRecordPage(ObservableList<String> list) {
     clearPage();
     set_FullAnimalRecordPage_LeftBox();
     set_FullAnimalRecordPage_RightBox();
-    set_FullAnimalRecordPage_MiddleBox();
+    set_FullAnimalRecordPage_MiddleBox(list);
     set_FullAnimalRecordPage_BottomBox();
     start(pstage);
   }
@@ -872,12 +1115,14 @@ public class Main extends Application {
     // right side button of design
     Button viewAll = new Button("View All");
     viewAll.setPrefSize(80, 40);
+    viewAll.setFont(new Font("Copperplate", 20));
     // set on action of view History button
     viewAll.setOnAction(E -> setResultPage());
 
     // add in date
     // not so sure if this should be a button
     Button date = new Button("Date");
+    date.setFont(new Font("Copperplate", 20));
     date.setPrefSize(80, 40);
     date.setOnAction(e -> {
       // TODO connect to the result's add in date
@@ -901,10 +1146,12 @@ public class Main extends Application {
     // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
     // Adopt information page
     Button adopt = new Button("Adopt");
+    adopt.setFont(new Font("Copperplate", 20));
     adopt.setPrefSize(80, 40);
     adopt.setOnAction(e -> setAdoptInfoPage());
     // user account
     Button user = new Button("user info");
+    user.setFont(new Font("Copperplate", 20));
     user.setPrefSize(80, 40);
     user.setOnAction(e -> setFullUserInfoPage());
 
@@ -914,29 +1161,39 @@ public class Main extends Application {
 
   /**
    * set up the bottom box
+   * 
+   * @param list
    */
-  private void set_FullAnimalRecordPage_MiddleBox() {
+  private void set_FullAnimalRecordPage_MiddleBox(ObservableList<String> list) {
     middleBox = new VBox();
     // set color
     // middleBox.setBackground(new Background(
     // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
     GridPane gp = new GridPane();
-
+    ScrollPane sp = new ScrollPane();
+    sp.setContent(gp);// TODO: set scrolling
     // pet
     Button pet = new Button("pet");
+    pet.setFont(new Font("Copperplate", 20));
     pet.setPrefSize(80, 40);
     pet.setOnAction(e -> {
       // connect to the pet's information
     });
-    // set up table
-    TableView table = new TableView();
-    TableColumn adopters = new TableColumn("recent adopter");
-    adopters.setPrefWidth(100);
-    TableColumn breed = new TableColumn("breed");
-    breed.setPrefWidth(100);
-    table.getColumns().addAll(adopters, breed);
-    table.getOnScroll();
-    table.setPrefSize(400, 500);
+
+    Text tx = new Text();
+    String record = "";
+    for (int i = 0; i < list.size(); i++) {
+      record += list.get(i);
+    }
+    tx.setText(record);
+
+
+    // TableColumn adopters = new TableColumn("recent adopter");
+    // adopters.setPrefWidth(100);
+    // TableColumn breed = new TableColumn("breed");
+    // breed.setPrefWidth(100);
+    // table.getColumns().addAll(adopters, breed);
+
 
     // Setting size for the pane
     gp.setMinSize(300, 600);
@@ -953,18 +1210,19 @@ public class Main extends Application {
 
     // Arranging all the nodes in the grid
     gp.add(pet, 0, 1);
-    gp.add(table, 1, 1);
+    gp.add(tx, 1, 1);
 
     //
     VBox vbox = new VBox();
     vbox.setSpacing(5);
     vbox.setPadding(new Insets(10, 0, 0, 10));
-    vbox.getChildren().add(gp);
+    vbox.getChildren().add(sp);
     // TODO get connection to mysql and add each datum into vbox
 
     middleBox.getChildren().addAll(pet, vbox);
 
   }
+
 
   /**
    * set up the bottom box
@@ -976,6 +1234,7 @@ public class Main extends Application {
     // (new BackgroundFill(Color.CORNFLOWERBLUE, new CornerRadii(500), new Insets(10)))));
     // button for previous page
     Button previous = new Button("prev");
+    previous.setFont(new Font("Copperplate", 20));
     previous.setPrefSize(80, 40);
     previous.setOnAction(e -> {
       // TODO connect to the previous page if not null
@@ -983,6 +1242,7 @@ public class Main extends Application {
     });
     // button for next page
     Button next = new Button("next");
+    next.setFont(new Font("Copperplate", 20));
     next.setPrefSize(80, 40);
     next.setOnAction(e -> {
       // TODO connect to the next page if not null
@@ -1017,15 +1277,18 @@ public class Main extends Application {
 
     // });
 
-    TableView userHis = new TableView();
-    TableColumn phone = new TableColumn("Adopter's phone");
-    phone.setPrefWidth(120);
-    TableColumn name = new TableColumn("Adopter's name");
-    name.setPrefWidth(120);
-    userHis.getColumns().addAll(phone, name);
-    userHis.getOnScroll();
-    userHis.setPrefSize(400, 400);
-    // TODO load data into this table
+    Text tx = new Text();
+
+    String record = "";
+
+    try {
+      record = link_account("", ""); // TODO: pass in name and phone of the user
+    } catch (SQLException e1) {
+
+      e1.printStackTrace();
+    } //
+
+    tx.setText(record);
 
     // Setting size for the pane
     gp.setMinSize(500, 600);
@@ -1042,7 +1305,7 @@ public class Main extends Application {
 
     // Arranging all the nodes in the grid
     gp.add(userHistory, 0, 0);
-    gp.add(userHis, 1, 0);
+    gp.add(tx, 1, 0);
 
     // Button surrenderHistory = new Button("surrender's History");
     // surrenderHistory.setOnAction(e -> {
@@ -1067,6 +1330,7 @@ public class Main extends Application {
 
     // add Button to go back to the menu page
     Button menu = new Button("menu");
+    menu.setFont(new Font("Copperplate", 20));
     menu.setPrefSize(80, 40);
     menu.setOnAction(e -> setMenuPage());
     middleBox.getChildren().addAll(menu, gp);
@@ -1089,6 +1353,7 @@ public class Main extends Application {
     upBox = new VBox();
     // add Button to go back to the menu page
     Button menu = new Button("menu");
+    menu.setFont(new Font("Copperplate", 20));
     menu.setPrefSize(80, 40);
     menu.setOnAction(e -> setMenuPage());
     upBox.getChildren().add(menu);
@@ -1113,6 +1378,7 @@ public class Main extends Application {
 
     // save data
     Button save = new Button("save");
+    save.setFont(new Font("Copperplate", 20));
     save.setPrefSize(80, 40);
 
     // add these text and textfields to gridpane
@@ -1198,6 +1464,7 @@ public class Main extends Application {
 
     // add Button to go back to the menu page
     Button menu = new Button("menu");
+    menu.setFont(new Font("Copperplate", 20));
     menu.setPrefSize(80, 40);
     menu.setOnAction(e -> setMenuPage());
     bottomBox.getChildren().add(menu);
