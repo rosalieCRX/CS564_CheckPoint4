@@ -237,8 +237,7 @@ public class Main extends Application {
       stmt.executeUpdate(query2);
     }
   }
-  
-  
+
 
 
   private void alter_User(String Name, String Phone, String Address,
@@ -268,36 +267,39 @@ public class Main extends Application {
     }
   }
 
-  
+
   private ArrayList<String> full_user_info() throws SQLException {
-    ArrayList<String> result=new ArrayList<>();
-   
-    String query = "Select Name,Phone,Address " + "From All_Users " + "Where User_ID = " + userID + ";";
+    ArrayList<String> result = new ArrayList<>();
+
+    String query =
+        "Select Name,Phone,Address " + "From All_Users " + "Where User_ID = " + userID + ";";
     ResultSet rs = stmt.executeQuery(query);
     if (rs.next()) {
       result.add(rs.getString(1));
       result.add(rs.getString(2));
       result.add(rs.getString(3));
     }
-    if(userType.equals("ADOPTER")) {
-    query = "Select Overall_Neighbor_Rating, Total_Number_of_Pets_up_to_now " + "From Potential_Adopter " + "Where A_User_ID = " + userID + ";";
-    rs = stmt.executeQuery(query);
-    if (rs.next()) {
-      result.add(rs.getFloat(1)+"");
-      result.add(rs.getInt(2)+"");
+    if (userType.equals("ADOPTER")) {
+      query = "Select Overall_Neighbor_Rating, Total_Number_of_Pets_up_to_now "
+          + "From Potential_Adopter " + "Where A_User_ID = " + userID + ";";
+      rs = stmt.executeQuery(query);
+      if (rs.next()) {
+        result.add(rs.getFloat(1) + "");
+        result.add(rs.getInt(2) + "");
+      }
     }
-    }
-    if(userType.equals("SURRENDER")) {
-    query = "Notes_and_Criteria_for_adoption " + "From Surrender_Owner " + "Where User_ID = " + userID + ";";
-    rs = stmt.executeQuery(query);
-    if (rs.next()) {
-      result.add(rs.getString(1));
-    }
+    if (userType.equals("SURRENDER")) {
+      query = "Select Notes_and_Criteria_for_adoption " + "From Surrender_Owner "
+          + "Where User_ID = " + userID + ";";
+      rs = stmt.executeQuery(query);
+      if (rs.next()) {
+        result.add(rs.getString(1));
+      }
     }
     return result;
   }
-  
-  
+
+
   private String[] user_info() throws SQLException {
     String query = "Select Name,Phone " + "From All_Users " + "Where User_ID = " + userID + ";";
     ResultSet rs = stmt.executeQuery(query);
@@ -306,8 +308,8 @@ public class Main extends Application {
     }
     return null;
   }
-  
-  
+
+
 
   private String link_account() throws SQLException {
     String[] rss = user_info();
@@ -315,8 +317,8 @@ public class Main extends Application {
     String Phone = rss[1];
     String query = "Select u1.User_ID,u2.User_ID " + "From All_Users u1, All_Users u2 "
         + "Where u1.Name = u2.Name AND u1.Phone = u2.Phone AND strcmp(u1.Phone, u2.Phone)<0 "
-        + "AND u1.User_ID in (select A_User_ID from Potential_Adopter) AND u1.Name ='"
-        + Name + "' AND u1.Phone ='" + Phone + "' " + "Order by u1.User_ID;";
+        + "AND u1.User_ID in (select A_User_ID from Potential_Adopter) AND u1.Name ='" + Name
+        + "' AND u1.Phone ='" + Phone + "' " + "Order by u1.User_ID;";
     ResultSet rs = stmt.executeQuery(query);
     if (rs.next()) {
       return connectUserInfo(rs.getInt(1), rs.getInt(2));
@@ -579,13 +581,25 @@ public class Main extends Application {
       }
     }
     if (attr.length() > 0) {
-      attr = " Where " + attr;
+      attr = " AND " + attr;
     }
 
-    String query = "Select " + groupBy + ", count(" + groupBy + ") "
-        + "From (Animal inner join Temperament) join Classification on "
-        + "Classification_Breed_Name = Breed_Name "
-        + attr + " " + "Group by " + groupBy + ";";
+    String query = "";
+    if (menuType.equals("others")) {
+      query = "Select " + groupBy + ", count(" + groupBy + ") "
+          + "From (Animal inner join Temperament) join Classification c on "
+          + "Classification_Breed_Name = c.Breed_Name "
+          + "where NOT(Specis_Name = 'Dog' or Specis_Name = 'Cat') " + attr + " " + "Group by "
+          + groupBy + ";";
+    } else {
+      query = "Select " + groupBy + ", count(" + groupBy + ") "
+          + "From (Animal inner join Temperament)  join Classification c on "
+          + "Classification_Breed_Name = c.Breed_Name "
+          + "where (Specis_Name = 'Dog' or Specis_Name = 'Cat') " + attr + " " + "Group by "
+          + groupBy + ";";
+
+    }
+
 
     ResultSet rs = stmt.executeQuery(query);
 
@@ -698,6 +712,7 @@ public class Main extends Application {
     adminlogin.setOnAction(ActionEvent -> {
       // set up the user type for future uses
       userType = "ADMIN";
+      userID = 0;
       // setMenuAddAnimalPage();
       setMenuPage();
     });
@@ -925,10 +940,12 @@ public class Main extends Application {
     Button statistic = new Button("Statistic for Animals");
     statistic.setPrefSize(300, 40);
     statistic.setFont(new Font("Copperplate", 20));
-    Button userAccount = new Button("User Account");
-    userAccount.setFont(new Font("Copperplate", 20));
-    userAccount.setPrefSize(300, 40);
-
+    Button userAccount = null;
+    if (!userType.equals("ADMIN")) {
+      userAccount = new Button("User Account");
+      userAccount.setFont(new Font("Copperplate", 20));
+      userAccount.setPrefSize(300, 40);
+    }
     search.setOnAction(e -> {
 
       setPrelimSearchPage();
@@ -939,11 +956,16 @@ public class Main extends Application {
       setStatsPage();
     });
 
-    userAccount.setOnAction(e -> {
-      setUserAcountPage();
-    });
+    if (!userType.equals("ADMIN")) {
+      userAccount.setOnAction(e -> {
+        setUserAcountPage();
+      });
+    }
 
-    middleBox.getChildren().addAll(search, statistic, userAccount);
+    if (!userType.equals("ADMIN"))
+      middleBox.getChildren().addAll(search, statistic, userAccount);
+    else
+      middleBox.getChildren().addAll(search, statistic);
 
     if (userType.equals("ADMIN") || userType.equals("SURRENDER")) {
       Button addRemove = new Button("Add or Remove Pets");
@@ -1074,12 +1096,12 @@ public class Main extends Application {
     adopter.setOnAction(e -> {
       userType = "ADOPTER";
       userID = nextUserID;
-try {
-  add_User("", "", "", "", 0f, 0);
-} catch (SQLException e1) {
-  // TODO Auto-generated catch block
-  e1.printStackTrace();
-}
+      try {
+        add_User("", "", "", "", 0f, 0);
+      } catch (SQLException e1) {
+        // TODO Auto-generated catch block
+        e1.printStackTrace();
+      }
       nextUserID++;
       setUserAcountPage();
     });
@@ -1734,80 +1756,80 @@ try {
 
   }
 
-
-  /**
-   * set up the bottom box
-   */
-  private void set_FullUserInfoPage_MiddleBox() {
-    middleBox = new VBox();
-
-    GridPane gp = new GridPane();
-    // set up table
-
-    // Button userHistory = new Button("userHistory");
-    Text userHistory = new Text("userHistory");
-    userHistory.setFont(Font.font("Copperplate", 17));
-
-
-    Text tx = new Text();
-
-    String record = "";
-
-    try {
-      record = link_account();
-      // TODO: pass in name and phone of the user
-    } catch (SQLException e1) {
-
-      e1.printStackTrace();
-    } //
-
-    tx.setText(record);
-
-    // Setting size for the pane
-    gp.setMinSize(500, 600);
-
-    // Setting the padding
-    gp.setPadding(new Insets(10, 10, 10, 10));
-
-    // Setting the vertical and horizontal gaps between the columns
-    gp.setVgap(5);
-    gp.setHgap(10);
-
-    // Setting the Grid alignment
-    gp.setAlignment(Pos.TOP_CENTER);
-
-    // Arranging all the nodes in the grid
-    gp.add(userHistory, 0, 0);
-    gp.add(tx, 1, 0);
-
-    // Button surrenderHistory = new Button("surrender's History");
-    // surrenderHistory.setOnAction(e -> {
-    // TODO connect to surrender's history
-
-    // });
-    Text surrenderHistory = new Text("surrenderHistory");
-    surrenderHistory.setFont(Font.font("Copperplate", 17));
-    TableView surrenderer = new TableView();
-    TableColumn surPhone = new TableColumn("Surrenderer's phone");
-    surPhone.setPrefWidth(150);
-    TableColumn surName = new TableColumn("Surrenderer's name");
-    surName.setPrefWidth(150);
-    surrenderer.getColumns().addAll(surPhone, surName);
-    surrenderer.getOnScroll();
-    surrenderer.setPrefSize(400, 400);
-    // TODO load data into this table
-
-    // Arranging all the nodes in the grid
-    gp.add(surrenderHistory, 0, 1);
-    gp.add(surrenderer, 1, 1);
-
-    // add Button to go back to the menu page
-    Button menu = new Button("menu");
-    menu.setFont(new Font("Copperplate", 20));
-    menu.setPrefSize(100, 40);
-    menu.setOnAction(e -> setMenuPage());
-    middleBox.getChildren().addAll(menu, gp);
-  }
+  //
+  // /**
+  // * set up the bottom box
+  // */
+  // private void set_FullUserInfoPage_MiddleBox() {
+  // middleBox = new VBox();
+  //
+  // GridPane gp = new GridPane();
+  // // set up table
+  //
+  // // Button userHistory = new Button("userHistory");
+  // Text userHistory = new Text("userHistory");
+  // userHistory.setFont(Font.font("Copperplate", 17));
+  //
+  //
+  // Text tx = new Text();
+  //
+  // String record = "";
+  //
+  // try {
+  // record = link_account();
+  // // TODO: pass in name and phone of the user
+  // } catch (SQLException e1) {
+  //
+  // e1.printStackTrace();
+  // } //
+  //
+  // tx.setText(record);
+  //
+  // // Setting size for the pane
+  // gp.setMinSize(500, 600);
+  //
+  // // Setting the padding
+  // gp.setPadding(new Insets(10, 10, 10, 10));
+  //
+  // // Setting the vertical and horizontal gaps between the columns
+  // gp.setVgap(5);
+  // gp.setHgap(10);
+  //
+  // // Setting the Grid alignment
+  // gp.setAlignment(Pos.TOP_CENTER);
+  //
+  // // Arranging all the nodes in the grid
+  // gp.add(userHistory, 0, 0);
+  // gp.add(tx, 1, 0);
+  //
+  // // Button surrenderHistory = new Button("surrender's History");
+  // // surrenderHistory.setOnAction(e -> {
+  // // TODO connect to surrender's history
+  //
+  // // });
+  // Text surrenderHistory = new Text("surrenderHistory");
+  // surrenderHistory.setFont(Font.font("Copperplate", 17));
+  // TableView surrenderer = new TableView();
+  // TableColumn surPhone = new TableColumn("Surrenderer's phone");
+  // surPhone.setPrefWidth(150);
+  // TableColumn surName = new TableColumn("Surrenderer's name");
+  // surName.setPrefWidth(150);
+  // surrenderer.getColumns().addAll(surPhone, surName);
+  // surrenderer.getOnScroll();
+  // surrenderer.setPrefSize(400, 400);
+  // // TODO load data into this table
+  //
+  // // Arranging all the nodes in the grid
+  // gp.add(surrenderHistory, 0, 1);
+  // gp.add(surrenderer, 1, 1);
+  //
+  // // add Button to go back to the menu page
+  // Button menu = new Button("menu");
+  // menu.setFont(new Font("Copperplate", 20));
+  // menu.setPrefSize(100, 40);
+  // menu.setOnAction(e -> setMenuPage());
+  // middleBox.getChildren().addAll(menu, gp);
+  // }
 
   /**
    * set up canvas
@@ -1835,9 +1857,27 @@ try {
 
   private void set_UserAcountPage_middleBox() {
     middleBox = new VBox();
-    
+
+    // String user_Name = null;
+    // String phone_Number = null;
+    // String user_Address = null;
+    // String self_Rating = null;
+    // String pet_Number = null;
+    // String note_Adopt = null;
+
+    ArrayList<String> info = null;
     try {
-      ArrayList<String> info = full_user_info();
+      info = full_user_info();
+      // user_Name = info.get(0);
+      // phone_Number = info.get(1);
+      // user_Address = info.get(2);
+      // if(userType.equals("ADOPTER")) {
+      // self_Rating = info.get(3);
+      // pet_Number = info.get(4);
+      // }
+      // if(userType.equals("SURRENDER"))
+      // note_Adopt = info.get(3);
+
     } catch (SQLException e1) {
       // TODO Auto-generated catch block
       e1.printStackTrace();
@@ -1854,14 +1894,22 @@ try {
     // user could change his or her address
     Text address = new Text("address");
     TextField addr = new TextField();
+    addr.resize(300, 40);
+    addr.setMinWidth(500);
 
-    // TODO add string
-    name.setPromptText("");
-    // TODO add string
-    phoneNumber.setPromptText("");
-    // TODO add string
-    addr.setPromptText("");
+    if (info.size() != 0) {
+      if (info.get(0) != null)
+        // TODO add string
+        name.setPromptText(info.get(0));
+      if (info.get(1) != null)
 
+        // TODO add string
+        phoneNumber.setPromptText(info.get(1));
+
+      if (info.get(2) != null)
+        // TODO add string
+        addr.setPromptText(info.get(2));
+    }
 
     // TODO get connect to the user's name phone and address
 
@@ -1897,7 +1945,7 @@ try {
       }
     });
 
-    ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
+    // ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
 
 
 
@@ -1912,16 +1960,22 @@ try {
     // tb.getColumns().addAll(surDonate, surAdopt);
     // tb.getOnScroll();
     // tb.setPrefSize(600, 600);
-    // TODO: present history?
+    // TODO present history?
     String hoistory = null;
     try {
+
       hoistory = link_account();
     } catch (SQLException e) {
 
       e.printStackTrace();
     }
 
+    if (hoistory == null) {
+      hoistory = "";
+    }
     Text ttext = new Text(hoistory);
+    ttext.setText(hoistory);
+
 
     // TODO:add hoistory to text field
 
@@ -1947,8 +2001,12 @@ try {
     gridPane.add(phoneNumber, 1, 1);
     gridPane.add(address, 0, 2);
     gridPane.add(addr, 1, 2);
-    gridPane.add(ttext, 2, 0);
-    gridPane.add(save, 5, 5);
+
+
+    gridPane.add(ttext, 0, 3);
+
+
+    gridPane.add(save, 7, 7);
 
     // adopter's two buttons
     if (userType.equals("ADOPTER")) {
@@ -1958,29 +2016,30 @@ try {
       TextField pet = new TextField();
 
       // TODO add string
-      rate.setPromptText("");
-      pet.setPromptText("");
+      rate.setPromptText(info.get(3));
+      pet.setPromptText(info.get(4));
 
       // TODO get connect self rating and owing pets number
 
 
-      gridPane.add(rating, 0, 3);
-      gridPane.add(rate, 1, 3);
-      gridPane.add(petNum, 0, 4);
-      gridPane.add(pet, 1, 4);
+      gridPane.add(rating, 0, 4);
+      gridPane.add(rate, 1, 4);
+      gridPane.add(petNum, 0, 5);
+      gridPane.add(pet, 1, 5);
 
     } else if (userType.equals("SURRENDER")) {
       Text note = new Text("note for the adopter");
       TextField noteAdopt = new TextField();
 
 
-      // TODO add string
-      noteAdopt.setPromptText("");
+      if (info.get(3) != null)
+        // TODO add string
+        noteAdopt.setPromptText(info.get(3));
 
       // TODO get connect to the note
 
-      gridPane.add(note, 0, 3);
-      gridPane.add(noteAdopt, 1, 3);
+      gridPane.add(note, 0, 6);
+      gridPane.add(noteAdopt, 1, 6);
     }
 
     middleBox.getChildren().addAll(gridPane);
@@ -2062,24 +2121,6 @@ try {
 
   }
 
-  /**
-   * Get user at a coordinate and Get user name
-   */
-  private String photoAt(double x, double y) {
-    for (Map.Entry<String, ArrayList<Double>> p : coordinate.entrySet()) {
-      // get x coordinate
-      double xc = p.getValue().get(0);
-      // get y coordinate
-      double yc = p.getValue().get(1);
-
-      double diff = (x - xc) * (x - xc) + (y - yc) * (y - yc);
-      // set scope of mouse click
-      if (diff <= 50 * 50) {
-        return p.getKey();
-      }
-    }
-    return null;
-  }
 
   /**
    * The class will be called by launch(args) in main method
